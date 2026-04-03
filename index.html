@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTab â AI Guitar Practice App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+:root {
+  --tweed-beige: #D4A574;
+  --vintage-cream: #FFFDD0;
+  --ox-blood: #800020;
+  --sunburst-brown: #8B4513;
+  --chrome: #C0C0C0;
+  --deep-black: #1a1a1a;
+  --panel-bg: #2a2a1a;
+  --panel-bg2: #3a3a2a;
+  --text-light: #e8e8e8;
+  --text-dark: #3a3a3a;
+  --font-display: 'Special Elite', 'Courier Prime', 'Courier New', monospace;
+  --font-body: 'Courier Prime', 'Georgia', serif;
+  --sp-xs: 4px; --sp-sm: 8px; --sp-md: 16px; --sp-lg: 24px; --sp-xl: 32px;
+  --rad: 8px;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; background:#111; color:var(--text-light); font-family:var(--font-body); overflow:hidden; }
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.03;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(212,165,116,.5) 2px, rgba(212,165,116,.5) 4px),
+                    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(212,165,116,.5) 2px, rgba(212,165,116,.5) 4px);
+}
+#app { width:100%; height:100%; display:flex; flex-direction:column; position:relative; z-index:1; }
+.screen { display:none; width:100%; flex:1; position:absolute; top:0; left:0; bottom:0; opacity:0;
+  transition: opacity .4s ease; overflow-y:auto; }
+.screen.active { display:flex; opacity:1; position:relative; }
+
+#header {
+  background: linear-gradient(180deg, #6B3410 0%, #4a2008 100%);
+  padding: 10px var(--sp-lg);
+  border-bottom: 3px solid var(--chrome);
+  box-shadow: 0 4px 16px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.08);
+  display:flex; justify-content:space-between; align-items:center; z-index:100; flex-shrink:0;
+}
+.app-title {
+  font-family:var(--font-display); font-size:26px; color:var(--vintage-cream);
+  text-shadow: 2px 2px 4px rgba(0,0,0,.8), 0 0 20px rgba(128,0,32,.3); letter-spacing:4px;
+}
+.header-nav { display:flex; gap:var(--sp-sm); align-items:center; }
+.nav-btn {
+  background: linear-gradient(180deg, rgba(255,253,208,.12), rgba(255,253,208,.04));
+  border:1px solid rgba(192,192,192,.3); color:var(--vintage-cream);
+  padding: 6px 14px; border-radius:var(--rad); font-family:var(--font-display);
+  font-size:11px; cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition: all .2s;
+}
+.nav-btn:hover { background: rgba(255,253,208,.18); border-color:var(--vintage-cream); }
+.nav-btn.active { background: var(--ox-blood); border-color: var(--ox-blood); }
+.nav-btn:disabled { opacity:.4; cursor:not-allowed; }
+.mode-badge {
+  background: var(--ox-blood); color:var(--vintage-cream); padding:4px 10px;
+  border-radius:var(--rad); font-family:var(--font-display); font-size:10px;
+  text-transform:uppercase; letter-spacing:1px;
+}
+
+.bak-btn {
+  background: linear-gradient(180deg, #D4A574, #C09463 50%, #A07843);
+  border: 2px solid #8B6F47; border-radius:var(--rad);
+  padding: 8px 16px; color:var(--deep-black); font-family:var(--font-display);
+  font-size:12px; font-weight:700; cursor:pointer; text-transform:uppercase; letter-spacing:1px;
+  box-shadow: 0 4px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.3);
+  transition: all .15s; user-select:none;
+}
+.bak-btn:hover { transform:translateY(-1px); box-shadow: 0 6px 12px rgba(0,0,0,.5); }
+.bak-btn:active { transform:translateY(0); box-shadow: inset 0 2px 4px rgba(0,0,0,.3); }
+.bak-btn.red { background: linear-gradient(180deg, #a00028, #800020 50%, #600018); border-color:#400010; color:var(--vintage-cream); }
+.bak-btn.red:hover { background: linear-gradient(180deg, #c00030, #a00028 50%, #800020); }
+.bak-btn.chrome { background: linear-gradient(180deg, #d0d0d0, #b0b0b0 50%, #909090); border-color:#606060; }
+.bak-btn.small { padding:5px 10px; font-size:10px; }
+.bak-btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+.knob-wrap { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.amp-knob {
+  width:52px; height:52px; border-radius:50%; cursor:pointer; position:relative; user-select:none;
+  background: radial-gradient(circle at 35% 35%, #f0f0f0, #c0c0c0 25%, #808080 55%, #404040 80%, #202020);
+  border: 3px solid #404040;
+  box-shadow: 0 6px 14px rgba(0,0,0,.7), inset 0 2px 3px rgba(255,255,255,.15), inset 0 -2px 3px rgba(0,0,0,.8);
+}
+.amp-knob::after {
+  content:''; position:absolute; top:5px; left:50%; width:3px; height:16px;
+  background: linear-gradient(90deg, var(--ox-blood), #c00028); border-radius:2px;
+  transform:translateX(-50%); box-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+.knob-label { font-family:var(--font-display); font-size:10px; color:var(--vintage-cream); text-transform:uppercase; letter-spacing:1px; }
+.knob-val { font-family:var(--font-display); font-size:10px; color:var(--chrome); }
+
+.chrome-slider {
+  appearance:none; width:100%; height:6px;
+  background: linear-gradient(180deg, #888, #666);
+  border:1px solid #555; border-radius:3px; outline:none;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.4); cursor:pointer;
+}
+.chrome-slider::-webkit-slider-thumb {
+  appearance:none; width:16px; height:20px;
+  background: linear-gradient(180deg, #e8e8e8, #a0a0a0);
+  border:1px solid #555; border-radius:2px; cursor:pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,.5);
+}
+.chrome-slider::-moz-range-thumb {
+  width:16px; height:20px; background: linear-gradient(180deg, #e8e8e8, #a0a0a0);
+  border:1px solid #555; border-radius:2px; cursor:pointer;
+}
+
+.retro-select {
+  background: linear-gradient(180deg, #2a2a1a, #1a1a0a);
+  border:2px solid var(--chrome); color:var(--vintage-cream);
+  padding:6px 10px; border-radius:var(--rad); font-family:var(--font-display);
+  font-size:12px; cursor:pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,.5); width:100%;
+}
+.retro-select option { background:#1a1a0a; color:var(--vintage-cream); }
+
+.panel {
+  background: linear-gradient(135deg, var(--panel-bg2), var(--panel-bg));
+  border:2px solid rgba(192,192,192,.3); border-radius:var(--rad);
+  padding:var(--sp-md); box-shadow: 0 4px 12px rgba(0,0,0,.5);
+}
+.panel-title {
+  font-family:var(--font-display); font-size:12px; color:var(--vintage-cream);
+  text-transform:uppercase; letter-spacing:2px; margin-bottom:var(--sp-md);
+  padding-bottom:var(--sp-sm); border-bottom:1px solid rgba(192,192,192,.2);
+}
+
+.vu-meter {
+  height:14px; background:#0a0a0a; border:1px solid var(--chrome); border-radius:3px;
+  overflow:hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.8);
+}
+.vu-bar { height:100%; width:0%; background: linear-gradient(90deg, #0a0, #ff0 70%, #f60 90%, #f00); transition: width .08s linear; }
+
+/* IMPORT */
+#import-screen {
+  flex-direction:column; justify-content:center; align-items:center;
+  gap:var(--sp-xl); padding:var(--sp-xl);
+  background: radial-gradient(ellipse at center, #2a2a1a 0%, #111 70%);
+}
+.import-hero { text-align:center; }
+.import-hero h1 { font-family:var(--font-display); font-size:42px; color:var(--vintage-cream);
+  text-shadow: 3px 3px 6px rgba(0,0,0,.8), 0 0 40px rgba(128,0,32,.2); letter-spacing:6px; }
+.import-hero p { color:var(--chrome); font-size:14px; margin-top:8px; font-family:var(--font-display); letter-spacing:1px; }
+.import-content { max-width:700px; width:100%; display:flex; flex-direction:column; gap:var(--sp-lg); }
+.upload-zone {
+  border:3px dashed rgba(192,192,192,.4); border-radius:12px; padding:40px var(--sp-xl);
+  text-align:center; cursor:pointer; transition:all .3s; background: rgba(255,253,208,.02);
+}
+.upload-zone:hover { border-color:var(--vintage-cream); background:rgba(255,253,208,.06); box-shadow: 0 0 30px rgba(255,253,208,.05); }
+.upload-zone.drag-over { border-color:var(--ox-blood); background:rgba(128,0,32,.08); }
+.upload-icon { font-size:48px; display:block; margin-bottom:12px; }
+.upload-text { font-family:var(--font-display); font-size:16px; color:var(--vintage-cream); }
+.upload-sub { font-size:12px; color:var(--chrome); margin-top:6px; }
+.divider { display:flex; align-items:center; gap:var(--sp-md); opacity:.5; }
+.divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--chrome); }
+.divider span { color:var(--chrome); font-size:11px; text-transform:uppercase; letter-spacing:2px; font-family:var(--font-display); }
+.lib-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:var(--sp-md); }
+.lib-item {
+  background: linear-gradient(135deg, #3a3a2a, #2a2a1a); border:2px solid rgba(192,192,192,.25);
+  border-radius:var(--rad); padding:var(--sp-md); text-align:center; cursor:pointer; transition:all .3s;
+}
+.lib-item:hover { border-color:var(--vintage-cream); transform:translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+.lib-icon { font-size:28px; margin-bottom:6px; }
+.lib-name { font-family:var(--font-display); font-size:11px; color:var(--vintage-cream); font-weight:700; }
+.lib-desc { font-size:10px; color:var(--chrome); margin-top:3px; }
+
+.processing { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:1000;
+  flex-direction:column; align-items:center; justify-content:center; gap:var(--sp-lg); }
+.processing.active { display:flex; }
+.spinner { width:50px; height:50px; border:3px solid rgba(192,192,192,.2);
+  border-top-color:var(--ox-blood); border-radius:50%; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.proc-text { color:var(--vintage-cream); font-family:var(--font-display); font-size:14px;
+  text-transform:uppercase; letter-spacing:2px; }
+.proc-steps { display:flex; flex-direction:column; gap:6px; }
+.proc-step { color:var(--chrome); font-family:var(--font-display); font-size:11px; opacity:.4; transition:opacity .3s; }
+.proc-step.done { opacity:1; color:#0c0; }
+.proc-step.active { opacity:1; color:var(--vintage-cream); }
+
+/* PRACTICE ROOM */
+#practice-screen { flex-direction:column; background:var(--deep-black); gap:0; padding:0; }
+.practice-grid {
+  display:grid; grid-template-columns:1fr 260px; gap:var(--sp-md);
+  padding:var(--sp-md); flex:1; overflow:hidden; min-height:0;
+}
+.prac-left { display:flex; flex-direction:column; gap:var(--sp-md); overflow-y:auto; min-height:0; }
+.prac-right { display:flex; flex-direction:column; gap:var(--sp-md); overflow-y:auto; min-height:0; }
+
+.wave-wrap {
+  background:#0a0a0a; border:2px solid rgba(192,192,192,.3); border-radius:var(--rad);
+  padding:8px; box-shadow: inset 0 2px 8px rgba(0,0,0,.8); position:relative; flex-shrink:0;
+}
+#waveform { width:100%; height:80px; display:block; cursor:crosshair; border-radius:4px; }
+.wave-time { position:absolute; bottom:10px; right:14px; font-family:var(--font-display); font-size:10px; color:var(--chrome); }
+
+.transport {
+  display:flex; align-items:center; gap:var(--sp-md); padding:10px var(--sp-md);
+  background: linear-gradient(180deg, var(--panel-bg2), var(--panel-bg));
+  border:2px solid rgba(192,192,192,.2); border-radius:var(--rad);
+  box-shadow: 0 4px 12px rgba(0,0,0,.5); flex-shrink:0; flex-wrap:wrap;
+}
+.transport-btns { display:flex; gap:6px; }
+.tbtn {
+  width:40px; height:40px; border-radius:50%; border:2px solid #555; font-size:16px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; color:var(--deep-black); font-weight:700;
+}
+.tbtn.play { background: linear-gradient(180deg, #2a2, #181); border-color:#060; color:var(--vintage-cream); }
+.tbtn.play.active { background: linear-gradient(180deg, #4c4, #2a2); box-shadow: 0 0 12px rgba(0,180,0,.4); }
+.tbtn.pause { background: linear-gradient(180deg, var(--tweed-beige), #a07040); border-color:#805530; }
+.tbtn.stop { background: linear-gradient(180deg, var(--ox-blood), #500010); border-color:#300008; color:var(--vintage-cream); }
+.tbtn:hover { transform:scale(1.08); }
+.tbtn:active { transform:scale(.95); }
+
+.tempo-group { display:flex; flex-direction:column; gap:3px; min-width:140px; }
+.tempo-row { display:flex; align-items:center; gap:8px; }
+.tempo-val { font-family:var(--font-display); font-size:14px; color:var(--ox-blood); font-weight:700; min-width:42px; text-align:right; }
+.ctrl-label { font-family:var(--font-display); font-size:9px; color:var(--chrome); text-transform:uppercase; letter-spacing:1px; }
+
+.metro-group { display:flex; align-items:center; gap:var(--sp-sm); }
+.metro-toggle { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.metro-toggle input { display:none; }
+.metro-light {
+  width:12px; height:12px; border-radius:50%; background:#333; border:1px solid #555;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.5); transition:all .1s;
+}
+.metro-toggle input:checked + .metro-light { background:#f00; box-shadow: 0 0 8px rgba(255,0,0,.6); }
+.metro-label { font-family:var(--font-display); font-size:10px; color:var(--vintage-cream); text-transform:uppercase; }
+.beat-dots { display:flex; gap:4px; }
+.beat-dot {
+  width:8px; height:8px; border-radius:50%; background:#333; border:1px solid #555;
+  transition: background .08s, box-shadow .08s;
+}
+.beat-dot.on { background:var(--ox-blood); box-shadow: 0 0 6px rgba(128,0,32,.6); }
+.beat-dot.accent { background:#f00; box-shadow: 0 0 8px rgba(255,0,0,.5); }
+
+.tab-view {
+  background: linear-gradient(180deg, #FFFDD0, #FFF8C0);
+  border:2px solid #8B6F47; border-radius:var(--rad);
+  padding:var(--sp-md) var(--sp-md) var(--sp-md) 6px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.4);
+  min-height:180px; position:relative; overflow-x:auto; overflow-y:hidden; flex-shrink:0;
+}
+.tab-view::before {
+  content:''; position:absolute; inset:0; pointer-events:none; border-radius:var(--rad); z-index:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 21px, rgba(139,111,71,.12) 21px, rgba(139,111,71,.12) 22px);
+}
+.tab-content {
+  position:relative; z-index:1; white-space:pre; font-family:'Courier Prime','Courier New',monospace;
+  font-size:13px; font-weight:700; line-height:22px; color:var(--text-dark); letter-spacing:1.5px;
+}
+.tab-header {
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; position:relative; z-index:2;
+}
+.tab-header-label { font-family:var(--font-display); font-size:11px; color:#8B6F47; text-transform:uppercase; letter-spacing:1px; }
+.tab-toggle { font-family:var(--font-display); font-size:10px; color:#8B6F47; cursor:pointer;
+  border:1px solid #8B6F47; padding:2px 8px; border-radius:4px; background:transparent; }
+.tab-toggle:hover { background:rgba(139,111,71,.1); }
+
+.mixer-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-sm); justify-items:center; }
+.stem-strip {
+  display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 4px;
+  background:rgba(0,0,0,.2); border-radius:var(--rad); width:100%;
+}
+.stem-mute {
+  width:100%; padding:3px; font-family:var(--font-display); font-size:9px;
+  text-transform:uppercase; border:1px solid #555; border-radius:4px;
+  background:transparent; color:var(--chrome); cursor:pointer; text-align:center;
+}
+.stem-mute.muted { background:var(--ox-blood); border-color:var(--ox-blood); color:var(--vintage-cream); }
+
+.lick-list { display:flex; flex-direction:column; gap:6px; overflow-y:auto; flex:1; min-height:0; }
+.lick-card {
+  background: linear-gradient(135deg, rgba(255,253,208,.05), rgba(0,0,0,.2));
+  border:1px solid rgba(192,192,192,.2); border-radius:var(--rad); padding:8px;
+  cursor:pointer; transition:all .2s;
+}
+.lick-card:hover { border-color:var(--vintage-cream); background:rgba(255,253,208,.08); }
+.lick-card.playing { border-color:var(--ox-blood); box-shadow: 0 0 10px rgba(128,0,32,.3); }
+.lick-card-top { display:flex; justify-content:space-between; align-items:center; }
+.lick-title { font-family:var(--font-display); font-size:11px; color:var(--vintage-cream); font-weight:700; }
+.lick-badge { font-size:9px; padding:2px 6px; border-radius:3px; font-family:var(--font-display);
+  text-transform:uppercase; letter-spacing:.5px; }
+.lick-badge.blues { background:rgba(0,100,255,.2); color:#6af; }
+.lick-badge.jazz { background:rgba(180,0,255,.2); color:#c8f; }
+.lick-badge.neo { background:rgba(255,100,0,.2); color:#fa6; }
+.lick-meta { font-size:10px; color:var(--chrome); margin-top:3px; font-family:var(--font-display); }
+.lick-tab-preview {
+  background:rgba(255,253,208,.06); border-radius:4px; padding:4px 6px; margin-top:6px;
+  font-family:'Courier Prime',monospace; font-size:9px; color:var(--chrome); white-space:pre; line-height:1.4;
+  overflow:hidden; max-height:60px;
+}
+.lick-actions { display:flex; gap:4px; margin-top:6px; }
+.lick-act {
+  flex:1; padding:4px; font-family:var(--font-display); font-size:9px; text-transform:uppercase;
+  border:1px solid rgba(192,192,192,.2); border-radius:4px; background:transparent;
+  color:var(--chrome); cursor:pointer; text-align:center; transition:all .2s;
+}
+.lick-act:hover { border-color:var(--vintage-cream); color:var(--vintage-cream); }
+.lick-act.fav.active { color:#f44; border-color:#f44; }
+.lick-length-bar { display:flex; gap:4px; }
+.len-btn {
+  flex:1; padding:4px 2px; font-family:var(--font-display); font-size:9px;
+  border:1px solid rgba(192,192,192,.2); border-radius:4px; background:transparent;
+  color:var(--chrome); cursor:pointer; text-align:center; transition:all .15s;
+}
+.len-btn.active { background:var(--ox-blood); border-color:var(--ox-blood); color:var(--vintage-cream); }
+
+/* PROGRESSION GENERATOR */
+#prog-screen { flex-direction:column; background:var(--deep-black); padding:var(--sp-md); gap:var(--sp-md); }
+.prog-grid { display:grid; grid-template-columns:280px 1fr; gap:var(--sp-lg); flex:1; overflow:hidden; }
+.prog-left { display:flex; flex-direction:column; gap:var(--sp-md); overflow-y:auto; }
+.prog-right { display:flex; flex-direction:column; gap:var(--sp-md); overflow-y:auto; }
+.ctrl-group { display:flex; flex-direction:column; gap:6px; }
+.ctrl-group label { font-family:var(--font-display); font-size:10px; color:var(--vintage-cream);
+  text-transform:uppercase; letter-spacing:1px; }
+.chord-chart { display:flex; gap:var(--sp-sm); flex-wrap:wrap; justify-content:center; }
+.chord-box {
+  width:70px; height:70px; border:2px solid rgba(192,192,192,.3); border-radius:var(--rad);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-family:var(--font-display); transition:all .15s; background:rgba(0,0,0,.3);
+}
+.chord-box.active { border-color:var(--ox-blood); background:rgba(128,0,32,.15); box-shadow: 0 0 12px rgba(128,0,32,.3); }
+.chord-box .numeral { font-size:10px; color:var(--chrome); }
+.chord-box .name { font-size:18px; color:var(--vintage-cream); font-weight:700; }
+.scale-display {
+  background:rgba(0,0,0,.3); border:1px solid rgba(192,192,192,.2); border-radius:var(--rad);
+  padding:var(--sp-md); font-family:var(--font-display); text-align:center;
+}
+.scale-notes { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.scale-note {
+  width:32px; height:32px; border-radius:50%; border:2px solid rgba(192,192,192,.3);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-size:12px; color:var(--vintage-cream); font-weight:700;
+}
+.scale-note.root { background:var(--ox-blood); border-color:var(--ox-blood); }
+
+/* EXPORT */
+#export-screen {
+  flex-direction:column; justify-content:center; align-items:center;
+  gap:var(--sp-xl); padding:var(--sp-xl); background:radial-gradient(ellipse, #2a2a1a, #111 70%);
+}
+.export-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:var(--sp-md); max-width:500px; width:100%; }
+.export-card {
+  background: linear-gradient(135deg, var(--panel-bg2), var(--panel-bg));
+  border:2px solid rgba(192,192,192,.25); border-radius:var(--rad);
+  padding:var(--sp-lg); text-align:center; cursor:pointer; transition:all .3s;
+}
+.export-card:hover { border-color:var(--vintage-cream); transform:translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+.export-card .icon { font-size:32px; margin-bottom:8px; }
+.export-card .label { font-family:var(--font-display); font-size:12px; color:var(--vintage-cream); text-transform:uppercase; letter-spacing:1px; }
+.export-card .desc { font-size:10px; color:var(--chrome); margin-top:4px; }
+.export-toast {
+  position:fixed; bottom:40px; left:50%; transform:translateX(-50%); background:var(--ox-blood);
+  color:var(--vintage-cream); padding:10px 24px; border-radius:var(--rad);
+  font-family:var(--font-display); font-size:12px; box-shadow: 0 4px 16px rgba(0,0,0,.6);
+  opacity:0; transition:opacity .3s; pointer-events:none; z-index:2000;
+}
+.export-toast.show { opacity:1; }
+
+@media (max-width:900px) {
+  .practice-grid { grid-template-columns:1fr; }
+  .prog-grid { grid-template-columns:1fr; }
+  .prac-right { max-height:300px; }
+}
+@media (max-width:600px) {
+  .transport { gap:var(--sp-sm); padding:8px; }
+  .mixer-grid { grid-template-columns:repeat(2,1fr); }
+  .export-grid { grid-template-columns:1fr; }
+}
+::-webkit-scrollbar { width:8px; height:8px; }
+::-webkit-scrollbar-track { background:#1a1a1a; }
+::-webkit-scrollbar-thumb { background:var(--sunburst-brown); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover { background:#a05818; }
+    </style>
+</head>
+<body>
+<div id="app">
+
+<div id="header">
+  <div class="app-title">GTab</div>
+  <div class="header-nav">
+    <button class="nav-btn active" data-screen="import-screen" id="nav-import">Import</button>
+    <button class="nav-btn" data-screen="practice-screen" id="nav-practice" disabled>Practice</button>
+    <button class="nav-btn" data-screen="prog-screen" id="nav-prog">Progressions</button>
+    <button class="nav-btn" data-screen="export-screen" id="nav-export" disabled>Export</button>
+    <div class="mode-badge" id="mode-badge">Standard</div>
+  </div>
+</div>
+
+<div class="processing" id="processing">
+  <div class="spinner"></div>
+  <div class="proc-text" id="proc-text">Analyzing Audio...</div>
+  <div style="width:260px;"><div class="vu-meter"><div class="vu-bar" id="proc-vu"></div></div></div>
+  <div class="proc-steps" id="proc-steps">
+    <div class="proc-step" data-step="stems">Separating stems...</div>
+    <div class="proc-step" data-step="transcribe">Transcribing guitar...</div>
+    <div class="proc-step" data-step="licks">Extracting licks...</div>
+    <div class="proc-step" data-step="genre">Detecting genre...</div>
+  </div>
+</div>
+
+<div class="screen active" id="import-screen">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-xl);padding:var(--sp-xl);width:100%;">
+    <div class="import-hero">
+      <h1>GTab</h1>
+      <p>AI-Powered Guitar Practice</p>
+    </div>
+    <div class="import-content">
+      <div class="upload-zone" id="upload-zone">
+        <span class="upload-icon">&#127928;</span>
+        <div class="upload-text">Drop your track here</div>
+        <div class="upload-sub">MP3, WAV, M4A â any song, any genre</div>
+        <input type="file" id="file-input" style="display:none" accept=".mp3,.wav,.m4a,.flac">
+      </div>
+      <div class="divider"><span>or choose a demo</span></div>
+      <div class="lib-grid">
+        <div class="lib-item" data-sample="blues"><div class="lib-icon">&#127925;</div><div class="lib-name">Blues Shuffle</div><div class="lib-desc">12-bar in A</div></div>
+        <div class="lib-item" data-sample="jazz"><div class="lib-icon">&#127927;</div><div class="lib-name">Jazz Standard</div><div class="lib-desc">ii-V-I in Bb</div></div>
+        <div class="lib-item" data-sample="rock"><div class="lib-icon">&#9889;</div><div class="lib-name">Rock Riff</div><div class="lib-desc">Power chords in E</div></div>
+        <div class="lib-item" data-sample="neo"><div class="lib-icon">&#128293;</div><div class="lib-name">Neoclassical</div><div class="lib-desc">Harmonic minor run</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="practice-screen">
+  <div class="practice-grid">
+    <div class="prac-left">
+      <div class="wave-wrap">
+        <canvas id="waveform"></canvas>
+        <div class="wave-time"><span id="wave-pos">0:00</span> / <span id="wave-dur">0:00</span></div>
+      </div>
+      <div class="transport">
+        <div class="transport-btns">
+          <button class="tbtn play" id="t-play" title="Play">&#9654;</button>
+          <button class="tbtn pause" id="t-pause" title="Pause">&#10074;&#10074;</button>
+          <button class="tbtn stop" id="t-stop" title="Stop">&#9632;</button>
+        </div>
+        <div class="tempo-group">
+          <div class="ctrl-label">Tempo</div>
+          <div class="tempo-row">
+            <input type="range" class="chrome-slider" id="tempo-slider" min="25" max="150" value="100" style="flex:1">
+            <div class="tempo-val" id="tempo-val">100%</div>
+          </div>
+        </div>
+        <div class="metro-group">
+          <label class="metro-toggle" title="Metronome">
+            <input type="checkbox" id="metro-cb">
+            <div class="metro-light"></div>
+            <span class="metro-label">Metro</span>
+          </label>
+          <div class="beat-dots" id="beat-dots">
+            <div class="beat-dot"></div><div class="beat-dot"></div><div class="beat-dot"></div><div class="beat-dot"></div>
+          </div>
+          <select class="retro-select" id="countin-sel" style="width:auto;padding:3px 8px;font-size:10px;">
+            <option value="0">No Count-in</option>
+            <option value="1">1 Bar</option>
+            <option value="2">2 Bars</option>
+          </select>
+        </div>
+      </div>
+      <div class="tab-view" id="tab-view">
+        <div class="tab-header">
+          <span class="tab-header-label" id="tab-genre-label">Standard Tab</span>
+          <button class="tab-toggle" id="tab-degree-toggle">Scale Degrees</button>
+        </div>
+        <div class="tab-content" id="tab-content"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Stem Mixer</div>
+        <div class="mixer-grid">
+          <div class="stem-strip"><div class="knob-wrap"><div class="amp-knob" id="knob-guitar" data-stem="guitar"></div><div class="knob-label">Guitar</div><div class="knob-val" id="val-guitar">75%</div></div><button class="stem-mute" data-stem="guitar">Mute</button></div>
+          <div class="stem-strip"><div class="knob-wrap"><div class="amp-knob" id="knob-bass" data-stem="bass"></div><div class="knob-label">Bass</div><div class="knob-val" id="val-bass">75%</div></div><button class="stem-mute" data-stem="bass">Mute</button></div>
+          <div class="stem-strip"><div class="knob-wrap"><div class="amp-knob" id="knob-drums" data-stem="drums"></div><div class="knob-label">Drums</div><div class="knob-val" id="val-drums">75%</div></div><button class="stem-mute" data-stem="drums">Mute</button></div>
+          <div class="stem-strip"><div class="knob-wrap"><div class="amp-knob" id="knob-other" data-stem="other"></div><div class="knob-label">Other</div><div class="knob-val" id="val-other">75%</div></div><button class="stem-mute" data-stem="other">Mute</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="prac-right">
+      <div class="panel"><div class="panel-title">Genre Mode</div>
+        <select class="retro-select" id="genre-sel">
+          <option value="standard">Standard</option><option value="blues">Blues</option>
+          <option value="jazz">Jazz</option><option value="neoclassical">Neoclassical</option>
+        </select>
+      </div>
+      <div class="panel"><div class="panel-title">Lick Length</div>
+        <div class="lick-length-bar" id="lick-len-bar">
+          <button class="len-btn" data-len="1beat">1 Beat</button>
+          <button class="len-btn active" data-len="1bar">1 Bar</button>
+          <button class="len-btn" data-len="2bar">2 Bars</button>
+          <button class="len-btn" data-len="4bar">4 Bars</button>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+        <div class="panel-title">Lick Library</div>
+        <div class="lick-list" id="lick-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="prog-screen">
+  <div class="prog-grid">
+    <div class="prog-left">
+      <div class="panel">
+        <div class="panel-title">Progression Setup</div>
+        <div class="ctrl-group"><label>Key</label>
+          <select class="retro-select" id="prog-key">
+            <option value="C">C</option><option value="Db">Db</option><option value="D">D</option>
+            <option value="Eb">Eb</option><option value="E">E</option><option value="F">F</option>
+            <option value="Gb">Gb</option><option value="G">G</option><option value="Ab">Ab</option>
+            <option value="A" selected>A</option><option value="Bb">Bb</option><option value="B">B</option>
+          </select>
+        </div>
+        <div class="ctrl-group" style="margin-top:12px;"><label>Mode</label>
+          <select class="retro-select" id="prog-mode">
+            <option value="ionian">Ionian (Major)</option><option value="dorian">Dorian</option>
+            <option value="mixolydian" selected>Mixolydian</option><option value="aeolian">Aeolian (Minor)</option>
+            <option value="harmonic-minor">Harmonic Minor</option><option value="phrygian">Phrygian</option>
+          </select>
+        </div>
+        <div class="ctrl-group" style="margin-top:12px;"><label>Progression</label>
+          <select class="retro-select" id="prog-type">
+            <option value="I-IV-V">I â IV â V</option><option value="ii-V-I">ii â V â I</option>
+            <option value="I-vi-IV-V">I â vi â IV â V</option><option value="I-V-vi-IV">I â V â vi â IV</option>
+            <option value="andalusian">Andalusian (iâbVIIâbVIâV)</option>
+            <option value="jazz-blues">Jazz Blues</option><option value="modal-vamp">Modal Vamp</option>
+          </select>
+        </div>
+        <div class="ctrl-group" style="margin-top:12px;">
+          <label>Tempo: <span id="prog-tempo-val">120</span> BPM</label>
+          <input type="range" class="chrome-slider" id="prog-tempo" min="40" max="220" value="120">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="bak-btn" id="prog-play" style="flex:1;">&#9654; Play</button>
+        <button class="bak-btn red" id="prog-stop" style="flex:1;">&#9632; Stop</button>
+      </div>
+    </div>
+    <div class="prog-right">
+      <div class="panel"><div class="panel-title">Chord Chart</div><div class="chord-chart" id="chord-chart"></div></div>
+      <div class="panel"><div class="panel-title">Scale</div><div class="scale-display"><div class="scale-notes" id="scale-notes"></div></div></div>
+      <div class="panel"><div class="panel-title">Suggested Licks</div><div id="prog-licks" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="export-screen">
+  <div style="text-align:center;">
+    <h2 style="font-family:var(--font-display);font-size:28px;color:var(--vintage-cream);letter-spacing:4px;margin-bottom:8px;">Export</h2>
+    <p style="color:var(--chrome);font-family:var(--font-display);font-size:12px;margin-bottom:var(--sp-xl);">Save your work in any format</p>
+  </div>
+  <div class="export-grid">
+    <div class="export-card" data-fmt="gp"><div class="icon">&#127928;</div><div class="label">Guitar Pro</div><div class="desc">.gp5 / .gpx</div></div>
+    <div class="export-card" data-fmt="xml"><div class="icon">&#128196;</div><div class="label">MusicXML</div><div class="desc">For Soundslice</div></div>
+    <div class="export-card" data-fmt="wav"><div class="icon">&#128266;</div><div class="label">Backing Track</div><div class="desc">WAV / MP3</div></div>
+    <div class="export-card" data-fmt="licks"><div class="icon">&#128218;</div><div class="label">Lick Pack</div><div class="desc">Individual lick tabs</div></div>
+  </div>
+</div>
+
+<div class="export-toast" id="toast"></div>
+</div>
+
+<script>
+const NOTES=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const NOTE_FREQ={
+  'C3':130.81,'Db3':138.59,'D3':146.83,'Eb3':155.56,'E3':164.81,'F3':174.61,
+  'Gb3':185.00,'G3':196.00,'Ab3':207.65,'A3':220.00,'Bb3':233.08,'B3':246.94,
+  'C4':261.63,'Db4':277.18,'D4':293.66,'Eb4':311.13,'E4':329.63,'F4':349.23,
+  'Gb4':369.99,'G4':392.00,'Ab4':415.30,'A4':440.00,'Bb4':466.16,'B4':493.88,
+  'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,'G5':783.99,'A5':880.00
+};
+const MODE_INTERVALS={
+  ionian:[0,2,4,5,7,9,11], dorian:[0,2,3,5,7,9,10], mixolydian:[0,2,4,5,7,9,10],
+  aeolian:[0,2,3,5,7,8,10], 'harmonic-minor':[0,2,3,5,7,8,11], phrygian:[0,1,3,5,7,8,10]
+};
+const CHORD_QUALITY={
+  ionian:['maj','min','min','maj','maj','min','dim'], dorian:['min','min','maj','maj','min','dim','maj'],
+  mixolydian:['maj','min','dim','maj','min','min','maj'], aeolian:['min','dim','maj','min','min','maj','maj'],
+  'harmonic-minor':['min','dim','aug','min','maj','maj','dim'], phrygian:['min','maj','maj','min','dim','maj','min']
+};
+const NUMERALS_MAJ=['I','II','III','IV','V','VI','VII'];
+
+function noteIndex(n){return NOTES.indexOf(n);}
+function noteName(i){return NOTES[((i%12)+12)%12];}
+function scaleNotes(key,mode){const r=noteIndex(key);return MODE_INTERVALS[mode].map(iv=>noteName(r+iv));}
+function chordName(root,q){return root+(q==='min'?'m':q==='dim'?'dim':q==='aug'?'aug':'');}
+function buildChords(key,mode){const sc=scaleNotes(key,mode);const qs=CHORD_QUALITY[mode];return sc.map((n,i)=>({root:n,quality:qs[i],name:chordName(n,qs[i]),degree:i}));}
+
+const PROG_DEGREES={
+  'I-IV-V':[0,3,4,0,3,4,0,4],'ii-V-I':[1,4,0,0,1,4,0,0],
+  'I-vi-IV-V':[0,5,3,4,0,5,3,4],'I-V-vi-IV':[0,4,5,3,0,4,5,3],
+  'andalusian':[0,6,5,4,0,6,5,4],'jazz-blues':[0,0,0,0,3,3,0,0,4,3,0,4],
+  'modal-vamp':[0,0,1,1,0,0,1,1]
+};
+
+function getProgChords(key,mode,pt){const all=buildChords(key,mode);const d=PROG_DEGREES[pt]||[0,3,4,0];return d.map(i=>all[i%all.length]);}
+function chordFreqs(root,quality,oct){
+  const ri=noteIndex(root);let iv;
+  if(quality==='maj')iv=[0,4,7];else if(quality==='min')iv=[0,3,7];
+  else if(quality==='dim')iv=[0,3,6];else if(quality==='aug')iv=[0,4,8];else iv=[0,4,7];
+  const base=130.81*Math.pow(2,(ri/12)+(oct-3));
+  return iv.map(i=>base*Math.pow(2,i/12));
+}
+
+const TAB_DATA={
+  blues:{label:'Blues Tab â A Blues Shuffle',tab:['e|---5---5--8b10--8--5--------5---5--8b10--8--5----|','B|---5---5-----------5--8--5--5---5-----------5----|','G|---5---5-----------5--------5---5-----------5----|','D|---7---7-----------7--------7---7-----------7----|','A|---7---7-----------7--------7---7-----------7----|','E|---5---5-----------5--------5---5-----------5----|','','e|---8b10-8-5-----5h7p5--------5------8b10r8--5----|','B|------------8-5-------8--5---5--8--5---------5----|','G|---------------------------5-7---7-----------5----|','D|--------------------------------------------7----|','A|--------------------------------------------7----|','E|--------------------------------------------5----|']},
+  jazz:{label:'Jazz Tab â Bb ii-V-I',tab:['e|---6---5---6---8---|---6---5---3---1---|---1---3---5---6---|','B|---6---6---6---6---|---6---6---3---3---|---3---3---3---6---|','G|---5---5---7---7---|---5---5---3---2---|---3---3---5---5---|','D|---8---7---8---8---|---8---7---3---3---|---3---5---5---7---|','A|-------------------|-------------------|-------------------|','E|-------------------|-------------------|-------------------|','','e|---8---6---5---3---|---3---5---6---8---|---6---5---3---1---|','B|---6---6---6---3---|---3---3---6---6---|---6---6---3---3---|','G|---7---5---5---2---|---3---3---5---7---|---5---5---2---3---|','D|---8---8---7---3---|---3---5---7---8---|---8---7---3---3---|','A|-------------------|-------------------|-------------------|','E|-------------------|-------------------|-------------------|']},
+  neoclassical:{label:'Neoclassical Tab â E Harmonic Minor',tab:['e|---12-15-16-15-12----|---16-15-12------------|---12-15-16-19-16-15-|','B|------------------15-|----------15-13-12-----|---------------------|','G|--------------------|-------------------14-12|---------------------|','D|--------------------|------------------------|---14-16-17-16-14----|','A|--------------------|------------------------|---------------------|','E|--------------------|------------------------|---------------------|','','e|---12-15-16-19-16-15-12---|','B|-------------------------15-13-12---|','G|-----------------------------------14-12-11---|','D|---------------------------------------------14-12-11---|','A|-----------------------------------------------|','E|-----------------------------------------------|']},
+  standard:{label:'Standard Tab â E Minor Pentatonic',tab:['e|---0---3---0---3---0---|---5---3---0-----------|---7---5---3---0-----|','B|---0---0---0---0---0---|---5---3---0---3---0---|---8---5---3---0-----|','G|---0---0---0---0---0---|---5---4---0---4---0---|---7---5---4---0-----|','D|---2---2---0---2---0---|---5---5---2---5---2---|---7---5---5---2-----|','A|---2---2---0---2---0---|---5---5---2---5---2---|---7---5---5---2-----|','E|---0---0---0---0---0---|---3---3---0---3---0---|---5---3---3---0-----|']},
+  rock:{label:'Rock Tab â E Power Chords',tab:['e|----------------------|----------------------|---------------------|','B|----------------------|----------------------|---------------------|','G|---9---9---x-9---9----|---6---6---x-6---6----|---4---4---x-4---4---|','D|---9---9---x-9---9----|---6---6---x-6---6----|---4---4---x-4---4---|','A|---7---7---x-7---7----|---4---4---x-4---4----|---2---2---x-2---2---|','E|----------------------|----------------------|---------------------|','','e|----------------------|','B|----------------------|','G|---2---2---x-2---4----|','D|---2---2---x-2---4----|','A|---0---0---x-0---2----|','E|----------------------|']}
+};
+
+const LICK_DB={
+  blues:[
+    {name:'BB King Box',bpm:90,badge:'blues',genre:'Blues',tab:'e|--8b10--8--5--------|\nB|------------8--5----|\nG|----------------7--5|',notes:['E4','E4','D4','C4','Bb3','A3','G3']},
+    {name:'Turnaround in A',bpm:85,badge:'blues',genre:'Turnaround',tab:'e|--5---5---5---5--|\nB|--5---5---5---5--|\nG|--6---5---4---3--|',notes:['A4','G4','F4','E4','D4','C4']},
+    {name:'Call & Response',bpm:100,badge:'blues',genre:'Call-Response',tab:'e|--8b10r8--5--------|\nB|------------8--5---|\nG|-----------------7-|',notes:['E4','D4','C4','A3','G3','A3']},
+    {name:'Slow Bend Phrase',bpm:70,badge:'blues',genre:'Slow Blues',tab:'e|--5~~~--8b10~~~~--8--5--|\nB|------------------------|',notes:['A3','C4','C4','A3']},
+    {name:'Shuffle Lick',bpm:120,badge:'blues',genre:'Shuffle',tab:'e|--5-8-5-8-5-8-5--|\nB|--5-8-5-8-5-8-5--|',notes:['A3','C4','A3','C4','A3','C4','A3']},
+  ],
+  jazz:[
+    {name:'ii-V-I Line',bpm:130,badge:'jazz',genre:'Bebop',tab:'e|--6--5--3--1--3--5--6--8--|\nB|--6--6--3--3--3--3--6--6--|',notes:['Bb4','A4','G4','F4','G4','A4','Bb4','C5']},
+    {name:'Enclosure Pattern',bpm:110,badge:'jazz',genre:'Enclosure',tab:'e|--4--6--5--3--5--|\nB|--3--3--3--3--3--|',notes:['Ab4','Bb4','A4','G4','A4']},
+    {name:'Maj7 Arpeggio',bpm:100,badge:'jazz',genre:'Arpeggio',tab:'e|--5--8--7--5--|\nB|--6--5--------|',notes:['A3','C4','E4','G4','A4']},
+    {name:'Chromatic Approach',bpm:120,badge:'jazz',genre:'Chromatic',tab:'e|--4--5--6--5--3--1--|',notes:['Ab4','A4','Bb4','A4','G4','F4']},
+  ],
+  neoclassical:[
+    {name:'Harmonic Minor Seq',bpm:160,badge:'neo',genre:'Sequence',tab:'e|--12-15-16--15-12------|\nB|----------------15-13--|',notes:['E4','G4','Ab4','G4','E4','D4','C4']},
+    {name:'Sweep Arpeggio',bpm:140,badge:'neo',genre:'Sweep',tab:'e|--------12--|\nB|------13----|\nG|----14------|',notes:['E3','A3','D4','Gb4','A4','E5']},
+    {name:'3NPS Scale Run',bpm:170,badge:'neo',genre:'3NPS',tab:'e|--12-13-15--|\nB|--12-13-15--|\nG|--12-14-16--|',notes:['E4','F4','G4','A4','B4','C5','D5']},
+    {name:'Pedal Point Lick',bpm:150,badge:'neo',genre:'Pedal',tab:'e|--12-0-15-0-16-0-15-0--|',notes:['E4','E5','G4','E5','Ab4','E5','G4','E5']},
+  ],
+  standard:[
+    {name:'Pentatonic Run',bpm:110,badge:'blues',genre:'Pentatonic',tab:'e|--0-3-0-3-0-3-5-3--|',notes:['E4','G4','E4','G4','E4','G4','A4','G4']},
+    {name:'Open String Riff',bpm:100,badge:'blues',genre:'Open',tab:'e|--0---3---0---3---0--|\nB|--0---0---0---0---0--|',notes:['E3','G3','E3','G3','E3']},
+  ],
+  rock:[
+    {name:'Power Riff',bpm:130,badge:'blues',genre:'Rock',tab:'e|--------------------|\nB|--------------------|\nG|--9-9-x-9--6-6-x-6-|',notes:['E3','E3','E3','C3','C3','C3']},
+  ]
+};
+
+const S={
+  screen:'import-screen',sample:null,genre:'standard',lickLen:'1bar',tempo:100,
+  metronome:false,countIn:0,playing:false,playPos:0,
+  loopA:null,loopB:null,
+  stems:{guitar:.75,bass:.75,drums:.75,other:.75},
+  muted:{guitar:false,bass:false,drums:false,other:false},
+  waveData:[],favLicks:new Set(),showDegrees:false,
+  progKey:'A',progMode:'mixolydian',progType:'I-IV-V',progTempo:120,
+  progPlaying:false,progChordIdx:0,toneStarted:false,
+};
+
+let metroSynth,lickSynth,progSynth,progBass,progDrums;
+let metroLoop,progLoop;
+let metroBeat=0;
+
+async function ensureTone(){
+  if(S.toneStarted)return;
+  await Tone.start();S.toneStarted=true;
+  metroSynth=new Tone.MembraneSynth({pitchDecay:.01,octaves:4,envelope:{attack:.001,decay:.1,sustain:0,release:.05}}).toDestination();
+  metroSynth.volume.value=-6;
+  lickSynth=new Tone.Synth({oscillator:{type:'sawtooth'},envelope:{attack:.01,decay:.3,sustain:.2,release:.3}}).toDestination();
+  lickSynth.volume.value=-8;
+  progSynth=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'triangle'},envelope:{attack:.05,decay:.4,sustain:.5,release:.8}}).toDestination();
+  progSynth.volume.value=-10;
+  progBass=new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:.02,decay:.3,sustain:.6,release:.4}}).toDestination();
+  progBass.volume.value=-6;
+  progDrums={
+    kick:new Tone.MembraneSynth({pitchDecay:.05,octaves:6,envelope:{attack:.001,decay:.2,sustain:0,release:.1}}).toDestination(),
+    hat:new Tone.NoiseSynth({noise:{type:'white'},envelope:{attack:.001,decay:.05,sustain:0,release:.02}}).toDestination()
+  };
+  progDrums.kick.volume.value=-4;progDrums.hat.volume.value=-14;
+}
+
+function startMetronome(){
+  if(metroLoop)metroLoop.dispose();metroBeat=0;
+  metroLoop=new Tone.Loop(time=>{
+    const accent=metroBeat%4===0;
+    metroSynth.triggerAttackRelease(accent?'C5':'C4','32n',time);
+    Tone.Draw.schedule(()=>updateBeatDots(metroBeat%4,accent),time);metroBeat++;
+  },'4n');
+  metroLoop.start(0);Tone.Transport.bpm.value=S.tempo*1.2;
+  if(Tone.Transport.state!=='started')Tone.Transport.start();
+}
+function stopMetronome(){if(metroLoop){metroLoop.stop();metroLoop.dispose();metroLoop=null;}metroBeat=0;updateBeatDots(-1,false);}
+function updateBeatDots(idx,accent){
+  document.querySelectorAll('#beat-dots .beat-dot').forEach((d,i)=>{
+    d.classList.remove('on','accent');if(i===idx)d.classList.add(accent?'accent':'on');
+  });
+}
+
+async function playLickPreview(lick){
+  await ensureTone();const now=Tone.now();
+  lick.notes.forEach((n,i)=>{const freq=NOTE_FREQ[n]||440;lickSynth.triggerAttackRelease(freq,'8n',now+i*0.25);});
+}
+
+async function startProgression(){
+  await ensureTone();stopProgression();
+  const chords=getProgChords(S.progKey,S.progMode,S.progType);
+  S.progPlaying=true;S.progChordIdx=0;Tone.Transport.bpm.value=S.progTempo;
+  let beatCount=0;
+  progLoop=new Tone.Loop(time=>{
+    const ci=Math.floor(beatCount/4)%chords.length;const bib=beatCount%4;const ch=chords[ci];
+    if(bib===0){
+      progSynth.triggerAttackRelease(chordFreqs(ch.root,ch.quality,4),'2n',time);
+      progBass.triggerAttackRelease(chordFreqs(ch.root,'maj',3)[0],'4n',time);
+    }
+    if(bib===0||bib===2)progDrums.kick.triggerAttackRelease('C1','8n',time);
+    progDrums.hat.triggerAttackRelease('8n',time);
+    Tone.Draw.schedule(()=>{S.progChordIdx=ci;renderChordChart();},time);beatCount++;
+  },'4n');
+  progLoop.start(0);if(Tone.Transport.state!=='started')Tone.Transport.start();
+  el('prog-play').textContent='Playing...';
+}
+function stopProgression(){
+  S.progPlaying=false;if(progLoop){progLoop.stop();progLoop.dispose();progLoop=null;}
+  if(Tone.Transport.state==='started'&&!S.metronome)Tone.Transport.stop();
+  S.progChordIdx=-1;renderChordChart();el('prog-play').textContent='\u25B6 Play';
+}
+
+function generateWaveData(){
+  S.waveData=[];for(let i=0;i<400;i++){
+    const b=Math.sin(i/30)*.3+Math.sin(i/12)*.15+Math.sin(i/7)*.1;
+    S.waveData.push(Math.max(-1,Math.min(1,b+(Math.random()-.5)*.3)));
+  }
+}
+function drawWaveform(){
+  const c=el('waveform');if(!c)return;const ctx=c.getContext('2d');
+  c.width=c.offsetWidth*2;c.height=c.offsetHeight*2;ctx.scale(2,2);
+  const w=c.offsetWidth,h=c.offsetHeight;
+  ctx.fillStyle='#0a0a08';ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(192,192,192,.06)';ctx.lineWidth=.5;
+  for(let x=0;x<w;x+=w/16){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();
+  if(!S.waveData.length)return;const step=w/S.waveData.length;
+  ctx.fillStyle='rgba(0,200,0,.08)';ctx.beginPath();ctx.moveTo(0,h/2);
+  S.waveData.forEach((v,i)=>ctx.lineTo(i*step,h/2-v*h*.4));ctx.lineTo(w,h/2);ctx.fill();
+  ctx.strokeStyle='#0c0';ctx.lineWidth=1;ctx.beginPath();
+  S.waveData.forEach((v,i)=>{const x=i*step,y=h/2-v*h*.4;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+  if(S.loopA!==null&&S.loopB!==null){
+    const la=S.loopA*w,lb=S.loopB*w;ctx.fillStyle='rgba(128,0,32,.12)';ctx.fillRect(la,0,lb-la,h);
+    [la,lb].forEach((mx,mi)=>{
+      ctx.fillStyle=mi===0?'#0a0':'#a00';ctx.beginPath();
+      ctx.moveTo(mx-5,0);ctx.lineTo(mx+5,0);ctx.lineTo(mx+2,12);ctx.lineTo(mx-2,12);ctx.fill();
+      ctx.strokeStyle=mi===0?'#0a0':'#a00';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(mx,0);ctx.lineTo(mx,h);ctx.stroke();
+    });
+  }
+  const px=S.playPos*w;ctx.strokeStyle='#c00020';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,h);ctx.stroke();
+  const dur=180;el('wave-pos').textContent=fmtTime(S.playPos*dur);el('wave-dur').textContent=fmtTime(dur);
+}
+function fmtTime(s){return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');}
+
+function renderTab(){const d=TAB_DATA[S.genre]||TAB_DATA.standard;el('tab-genre-label').textContent=d.label;el('tab-content').textContent=d.tab.join('\n');}
+
+function renderLicks(){
+  const licks=LICK_DB[S.genre]||LICK_DB.standard;const container=el('lick-list');container.innerHTML='';
+  licks.forEach((lick,i)=>{
+    const card=document.createElement('div');card.className='lick-card';
+    card.innerHTML=`<div class="lick-card-top"><span class="lick-title">${lick.name}</span><span class="lick-badge ${lick.badge}">${lick.genre}</span></div><div class="lick-meta">${lick.bpm} BPM</div><div class="lick-tab-preview">${lick.tab}</div><div class="lick-actions"><button class="lick-act preview" data-idx="${i}">&#9654; Preview</button><button class="lick-act loop" data-idx="${i}">&#8634; Loop</button><button class="lick-act fav ${S.favLicks.has(S.genre+i)?'active':''}" data-idx="${i}">&#9829; Fav</button></div>`;
+    container.appendChild(card);
+  });
+  container.querySelectorAll('.lick-act.preview').forEach(btn=>{
+    btn.onclick=async()=>{const l=licks[+btn.dataset.idx];btn.closest('.lick-card').classList.add('playing');await playLickPreview(l);setTimeout(()=>btn.closest('.lick-card').classList.remove('playing'),l.notes.length*250+200);};
+  });
+  container.querySelectorAll('.lick-act.loop').forEach(btn=>{
+    btn.onclick=async()=>{const l=licks[+btn.dataset.idx];for(let r=0;r<3;r++){await playLickPreview(l);await sleep(l.notes.length*260);}};
+  });
+  container.querySelectorAll('.lick-act.fav').forEach(btn=>{
+    btn.onclick=()=>{const k=S.genre+(+btn.dataset.idx);if(S.favLicks.has(k)){S.favLicks.delete(k);btn.classList.remove('active');}else{S.favLicks.add(k);btn.classList.add('active');}};
+  });
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function renderChordChart(){
+  const chords=getProgChords(S.progKey,S.progMode,S.progType);
+  el('chord-chart').innerHTML=chords.map((ch,i)=>`<div class="chord-box ${i===S.progChordIdx?'active':''}"><div class="numeral">${NUMERALS_MAJ[ch.degree]}</div><div class="name">${ch.name}</div></div>`).join('');
+}
+function renderScaleNotes(){
+  const notes=scaleNotes(S.progKey,S.progMode);
+  el('scale-notes').innerHTML=notes.map((n,i)=>`<div class="scale-note ${i===0?'root':''}">${n}</div>`).join('');
+}
+function renderProgLicks(){
+  const sets={ionian:['Major pentatonic run','Arpeggio climb','Diatonic sequence'],dorian:['Dorian 6th lick','Minor pentatonic + 6','Funk riff'],mixolydian:['Dominant 7th arpeggio','Blues-rock hybrid','Mixolydian slide'],aeolian:['Natural minor run','Minor arpeggio sweep','Melodic phrase'],'harmonic-minor':['Harmonic minor sequence','Diminished run','Phrygian dominant'],phrygian:['Phrygian riff','Flamenco run','b2 approach']};
+  const names=sets[S.progMode]||sets.ionian;
+  el('prog-licks').innerHTML=names.map(n=>`<div class="lick-card" style="cursor:default;"><div class="lick-title">${n}</div><div class="lick-meta">Practice over ${S.progKey} ${S.progMode}</div></div>`).join('');
+}
+
+function el(id){return document.getElementById(id);}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  el(id).classList.add('active');S.screen=id;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));
+}
+function showToast(msg){const t=el('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+
+function runProcessing(sampleName){
+  const proc=el('processing');proc.classList.add('active');const vu=el('proc-vu');
+  const steps=proc.querySelectorAll('.proc-step');
+  steps.forEach(s=>{s.classList.remove('done','active');});vu.style.width='0%';
+  let i=0;const iv=setInterval(()=>{
+    if(i>0)steps[i-1].classList.remove('active');
+    if(i>0)steps[i-1].classList.add('done');
+    if(i<4){steps[i].classList.add('active');vu.style.width=((i+1)/4*100)+'%';}
+    i++;if(i>4){clearInterval(iv);setTimeout(()=>{
+      proc.classList.remove('active');S.sample=sampleName;generateWaveData();
+      showScreen('practice-screen');el('nav-practice').disabled=false;el('nav-export').disabled=false;
+      renderTab();renderLicks();drawWaveform();
+    },400);}
+  },600);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{if(btn.disabled)return;showScreen(btn.dataset.screen);if(btn.dataset.screen==='prog-screen')renderProgUI();});
+  });
+  const uz=el('upload-zone'),fi=el('file-input');
+  uz.onclick=()=>fi.click();
+  uz.ondragover=e=>{e.preventDefault();uz.classList.add('drag-over');};
+  uz.ondragleave=()=>uz.classList.remove('drag-over');
+  uz.ondrop=e=>{e.preventDefault();uz.classList.remove('drag-over');if(e.dataTransfer.files.length)runProcessing('upload');};
+  fi.onchange=()=>{if(fi.files.length)runProcessing('upload');};
+  document.querySelectorAll('.lib-item').forEach(item=>{
+    item.onclick=()=>{const s=item.dataset.sample;S.genre=s==='neo'?'neoclassical':s;el('genre-sel').value=S.genre;runProcessing(s);};
+  });
+  let playInterval;
+  el('t-play').onclick=async()=>{await ensureTone();S.playing=true;el('t-play').classList.add('active');
+    if(S.metronome)startMetronome();clearInterval(playInterval);
+    playInterval=setInterval(()=>{S.playPos+=.002*(S.tempo/100);if(S.loopB&&S.playPos>S.loopB)S.playPos=S.loopA||0;if(S.playPos>1)S.playPos=0;drawWaveform();},50);};
+  el('t-pause').onclick=()=>{S.playing=false;el('t-play').classList.remove('active');clearInterval(playInterval);stopMetronome();};
+  el('t-stop').onclick=()=>{S.playing=false;S.playPos=0;el('t-play').classList.remove('active');clearInterval(playInterval);stopMetronome();drawWaveform();};
+  el('tempo-slider').oninput=e=>{S.tempo=+e.target.value;el('tempo-val').textContent=S.tempo+'%';if(Tone.Transport.state==='started')Tone.Transport.bpm.value=S.tempo*1.2;};
+  el('metro-cb').onchange=async e=>{S.metronome=e.target.checked;if(S.metronome&&S.playing){await ensureTone();startMetronome();}else stopMetronome();};
+  el('countin-sel').onchange=e=>S.countIn=+e.target.value;
+  el('waveform').onclick=e=>{const r=e.target.getBoundingClientRect();const p=(e.clientX-r.left)/r.width;
+    if(e.shiftKey){S.loopB=p;if(S.loopA!==null&&S.loopB<S.loopA){const t=S.loopA;S.loopA=S.loopB;S.loopB=t;}}
+    else if(e.altKey||e.metaKey){S.loopA=p;S.loopB=null;}else S.playPos=p;drawWaveform();};
+  el('waveform').ondblclick=()=>{S.loopA=null;S.loopB=null;drawWaveform();};
+  el('genre-sel').onchange=e=>{S.genre=e.target.value;el('mode-badge').textContent=S.genre==='standard'?'Standard':S.genre.charAt(0).toUpperCase()+S.genre.slice(1);renderTab();renderLicks();};
+  document.querySelectorAll('#lick-len-bar .len-btn').forEach(btn=>{
+    btn.onclick=()=>{document.querySelectorAll('#lick-len-bar .len-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');S.lickLen=btn.dataset.len;};
+  });
+  el('tab-degree-toggle').onclick=()=>{S.showDegrees=!S.showDegrees;el('tab-degree-toggle').textContent=S.showDegrees?'Fret Numbers':'Scale Degrees';renderTab();};
+  document.querySelectorAll('.amp-knob').forEach(knob=>{
+    const stem=knob.dataset.stem;let dragging=false,startY;
+    knob.onmousedown=e=>{dragging=true;startY=e.clientY;e.preventDefault();};
+    window.addEventListener('mousemove',e=>{if(!dragging)return;S.stems[stem]=Math.max(0,Math.min(1,S.stems[stem]+(startY-e.clientY)*.008));startY=e.clientY;updateKnob(stem);});
+    window.addEventListener('mouseup',()=>dragging=false);
+    knob.ondblclick=()=>{S.stems[stem]=.75;updateKnob(stem);};
+  });
+  function updateKnob(stem){el('val-'+stem).textContent=Math.round(S.stems[stem]*100)+'%';el('knob-'+stem).style.transform=`rotate(${(S.stems[stem]-.5)*270}deg)`;}
+  document.querySelectorAll('.stem-mute').forEach(btn=>{
+    btn.onclick=()=>{const s=btn.dataset.stem;S.muted[s]=!S.muted[s];btn.classList.toggle('muted',S.muted[s]);btn.textContent=S.muted[s]?'Muted':'Mute';};
+  });
+  function renderProgUI(){S.progKey=el('prog-key').value;S.progMode=el('prog-mode').value;S.progType=el('prog-type').value;S.progTempo=+el('prog-tempo').value;renderChordChart();renderScaleNotes();renderProgLicks();}
+  el('prog-key').onchange=renderProgUI;el('prog-mode').onchange=renderProgUI;el('prog-type').onchange=renderProgUI;
+  el('prog-tempo').oninput=e=>{S.progTempo=+e.target.value;el('prog-tempo-val').textContent=S.progTempo;if(S.progPlaying)Tone.Transport.bpm.value=S.progTempo;};
+  el('prog-play').onclick=()=>startProgression();el('prog-stop').onclick=()=>stopProgression();
+  renderProgUI();
+  document.querySelectorAll('.export-card').forEach(card=>{
+    card.onclick=()=>{const names={gp:'Guitar Pro (.gpx)',xml:'MusicXML',wav:'Backing Track (WAV)',licks:'Lick Pack'};showToast('Exported as '+(names[card.dataset.fmt]||card.dataset.fmt));};
+  });
+  window.addEventListener('resize',()=>{if(S.waveData.length)drawWaveform();});
+});
+</script>
+</body>
+</html>
