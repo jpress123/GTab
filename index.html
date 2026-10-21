@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GTab â AI Guitar Practice App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>GTab — Guitar Practice Studio</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -377,6 +377,7 @@ body::before {
 ::-webkit-scrollbar-thumb { background:var(--sunburst-brown); border-radius:4px; }
 ::-webkit-scrollbar-thumb:hover { background:#a05818; }
     </style>
+    <link rel="stylesheet" href="studio.css">
 </head>
 <body>
 <div id="app">
@@ -407,17 +408,17 @@ body::before {
 <div class="screen active" id="import-screen">
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-xl);padding:var(--sp-xl);width:100%;">
     <div class="import-hero">
-      <h1>GTab</h1>
-      <p>AI-Powered Guitar Practice</p>
+      <div class="eyebrow">YOUR DAILY GUITAR STUDIO</div><h1>Find your groove.</h1>
+      <p>A little practice. A lot of progress.</p>
     </div>
     <div class="import-content">
       <div class="upload-zone" id="upload-zone">
         <span class="upload-icon">&#127928;</span>
-        <div class="upload-text">Drop your track here</div>
-        <div class="upload-sub">MP3, WAV, M4A â any song, any genre</div>
-        <input type="file" id="file-input" style="display:none" accept=".mp3,.wav,.m4a,.flac">
+        <div class="upload-text">Bring your own backing track</div><div class="upload-cta">Choose audio file <span>↗</span></div>
+        <div class="upload-sub">MP3, WAV, M4A or FLAC · processed on this device</div>
+        <input type="file" id="file-input" style="display:none" accept=".mp3,.wav,.m4a,.flac,.ogg">
       </div>
-      <div class="divider"><span>or choose a demo</span></div>
+      <div class="divider"><span>START WITH A PRACTICE STUDY</span></div>
       <div class="lib-grid">
         <div class="lib-item" data-sample="blues"><div class="lib-icon">&#127925;</div><div class="lib-name">Blues Shuffle</div><div class="lib-desc">12-bar in A</div></div>
         <div class="lib-item" data-sample="jazz"><div class="lib-icon">&#127927;</div><div class="lib-name">Jazz Standard</div><div class="lib-desc">ii-V-I in Bb</div></div>
@@ -432,7 +433,7 @@ body::before {
   <div class="practice-grid">
     <div class="prac-left">
       <div class="wave-wrap">
-        <canvas id="waveform"></canvas>
+        <canvas id="waveform" aria-label="Audio waveform: click to seek"></canvas>
         <div class="wave-time"><span id="wave-pos">0:00</span> / <span id="wave-dur">0:00</span></div>
       </div>
       <div class="transport">
@@ -467,13 +468,15 @@ body::before {
       <div class="tab-view" id="tab-view">
         <div class="tab-header">
           <span class="tab-header-label" id="tab-genre-label">Standard Tab</span>
-          <button class="tab-toggle" id="tab-degree-toggle">Scale Degrees</button>
+          <div class="notation-switch" role="group" aria-label="Notation view"><button id="view-shapes" aria-pressed="true">Chord shapes</button><button id="view-tabs" aria-pressed="false">Tablature</button></div>
         </div>
-        <div class="tab-content" id="tab-content"></div>
+        <p id="notation-help" class="notation-help">Chord shapes for this study · × don’t play · ○ open string · high E at top · nut on the left</p><div id="study-shapes" class="shape-grid"></div><div class="tab-content" id="tab-content" hidden></div>
       </div>
       <div class="panel">
-        <div class="panel-title">Stem Mixer</div>
-        <div class="mixer-grid">
+        <div class="panel-title">Stem Mixer</div><p class="feature-note" id="stem-status" role="status" aria-live="polite">Separate an uploaded track to practice with individual instruments.</p>
+        <div class="stem-toolbar"><button class="bak-btn small" id="separate-btn" disabled>Separate instruments</button><button class="bak-btn small red" id="cancel-separation" hidden>Cancel</button><a class="bak-btn small" id="download-stems" hidden>Download 6 stems</a><button class="bak-btn small chrome" id="original-mix" hidden>Use original</button></div>
+        <p class="feature-note stem-detail">Local processing · up to 100 MB / 10 minutes. Other combines vocals, piano and remaining instruments. Slowing separated stems also lowers their pitch.</p>
+        <div class="mixer-grid" id="stem-controls" inert style="opacity:.4">
           <div class="stem-strip"><div class="knob-wrap"><div class="amp-knob" id="knob-guitar" data-stem="guitar"></div><div class="knob-label">Guitar</div><div class="knob-val" id="val-guitar">75%</div></div><button class="stem-mute" data-stem="guitar">Mute</button></div>
           <div class="stem-strip"><div class="knob-wrap"><div class="amp-knob" id="knob-bass" data-stem="bass"></div><div class="knob-label">Bass</div><div class="knob-val" id="val-bass">75%</div></div><button class="stem-mute" data-stem="bass">Mute</button></div>
           <div class="stem-strip"><div class="knob-wrap"><div class="amp-knob" id="knob-drums" data-stem="drums"></div><div class="knob-label">Drums</div><div class="knob-val" id="val-drums">75%</div></div><button class="stem-mute" data-stem="drums">Mute</button></div>
@@ -484,20 +487,12 @@ body::before {
     <div class="prac-right">
       <div class="panel"><div class="panel-title">Genre Mode</div>
         <select class="retro-select" id="genre-sel">
-          <option value="standard">Standard</option><option value="blues">Blues</option>
+          <option value="rock">Rock</option><option value="standard" selected>Standard</option><option value="blues">Blues</option>
           <option value="jazz">Jazz</option><option value="neoclassical">Neoclassical</option>
         </select>
       </div>
-      <div class="panel"><div class="panel-title">Lick Length</div>
-        <div class="lick-length-bar" id="lick-len-bar">
-          <button class="len-btn" data-len="1beat">1 Beat</button>
-          <button class="len-btn active" data-len="1bar">1 Bar</button>
-          <button class="len-btn" data-len="2bar">2 Bars</button>
-          <button class="len-btn" data-len="4bar">4 Bars</button>
-        </div>
-      </div>
       <div class="panel" style="flex:1;display:flex;flex-direction:column;min-height:0;">
-        <div class="panel-title">Lick Library</div>
+        <div class="panel-title">Lick Library · Sampled guitar</div><p class="sample-credit">Recorded guitar &amp; bass · <a href="assets/samples/ATTRIBUTION.md" target="_blank" rel="noopener">Sample credits</a></p>
         <div class="lick-list" id="lick-list"></div>
       </div>
     </div>
@@ -526,9 +521,9 @@ body::before {
         </div>
         <div class="ctrl-group" style="margin-top:12px;"><label>Progression</label>
           <select class="retro-select" id="prog-type">
-            <option value="I-IV-V">I â IV â V</option><option value="ii-V-I">ii â V â I</option>
-            <option value="I-vi-IV-V">I â vi â IV â V</option><option value="I-V-vi-IV">I â V â vi â IV</option>
-            <option value="andalusian">Andalusian (iâbVIIâbVIâV)</option>
+            <option value="I-IV-V">I – IV – V</option><option value="ii-V-I">ii – V – I</option>
+            <option value="I-vi-IV-V">I – vi – IV – V</option><option value="I-V-vi-IV">I – V – vi – IV</option>
+            <option value="andalusian">Andalusian (i–bVII–bVI–V)</option>
             <option value="jazz-blues">Jazz Blues</option><option value="modal-vamp">Modal Vamp</option>
           </select>
         </div>
@@ -553,19 +548,23 @@ body::before {
 <div class="screen" id="export-screen">
   <div style="text-align:center;">
     <h2 style="font-family:var(--font-display);font-size:28px;color:var(--vintage-cream);letter-spacing:4px;margin-bottom:8px;">Export</h2>
-    <p style="color:var(--chrome);font-family:var(--font-display);font-size:12px;margin-bottom:var(--sp-xl);">Save your work in any format</p>
+    <p style="color:var(--chrome);font-family:var(--font-display);font-size:12px;margin-bottom:var(--sp-xl);">Download your practice material</p>
   </div>
   <div class="export-grid">
-    <div class="export-card" data-fmt="gp"><div class="icon">&#127928;</div><div class="label">Guitar Pro</div><div class="desc">.gp5 / .gpx</div></div>
-    <div class="export-card" data-fmt="xml"><div class="icon">&#128196;</div><div class="label">MusicXML</div><div class="desc">For Soundslice</div></div>
-    <div class="export-card" data-fmt="wav"><div class="icon">&#128266;</div><div class="label">Backing Track</div><div class="desc">WAV / MP3</div></div>
+    <div class="export-card" data-fmt="tab"><div class="icon">&#127928;</div><div class="label">Tablature</div><div class="desc">Plain text · .txt</div></div>
+    <div class="export-card" data-fmt="session"><div class="icon">&#128196;</div><div class="label">Practice Settings</div><div class="desc">Key, mode and tempo · .json</div></div>
+    <div class="export-card" data-fmt="wav"><div class="icon">&#128266;</div><div class="label">Original Audio</div><div class="desc">Download your uploaded file</div></div>
     <div class="export-card" data-fmt="licks"><div class="icon">&#128218;</div><div class="label">Lick Pack</div><div class="desc">Individual lick tabs</div></div>
   </div>
 </div>
 
-<div class="export-toast" id="toast"></div>
+<div class="export-toast" id="toast" role="status" aria-live="polite"></div>
 </div>
 
+<script src="practice-patterns.js"></script>
+<script src="guitar-notation.js"></script>
+<script src="audio-engine.js"></script>
+<script src="stem-client.js"></script>
 <script>
 const NOTES=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 const NOTE_FREQ={
@@ -609,11 +608,11 @@ function chordFreqs(root,quality,oct){
 }
 
 const TAB_DATA={
-  blues:{label:'Blues Tab â A Blues Shuffle',tab:['e|---5---5--8b10--8--5--------5---5--8b10--8--5----|','B|---5---5-----------5--8--5--5---5-----------5----|','G|---5---5-----------5--------5---5-----------5----|','D|---7---7-----------7--------7---7-----------7----|','A|---7---7-----------7--------7---7-----------7----|','E|---5---5-----------5--------5---5-----------5----|','','e|---8b10-8-5-----5h7p5--------5------8b10r8--5----|','B|------------8-5-------8--5---5--8--5---------5----|','G|---------------------------5-7---7-----------5----|','D|--------------------------------------------7----|','A|--------------------------------------------7----|','E|--------------------------------------------5----|']},
-  jazz:{label:'Jazz Tab â Bb ii-V-I',tab:['e|---6---5---6---8---|---6---5---3---1---|---1---3---5---6---|','B|---6---6---6---6---|---6---6---3---3---|---3---3---3---6---|','G|---5---5---7---7---|---5---5---3---2---|---3---3---5---5---|','D|---8---7---8---8---|---8---7---3---3---|---3---5---5---7---|','A|-------------------|-------------------|-------------------|','E|-------------------|-------------------|-------------------|','','e|---8---6---5---3---|---3---5---6---8---|---6---5---3---1---|','B|---6---6---6---3---|---3---3---6---6---|---6---6---3---3---|','G|---7---5---5---2---|---3---3---5---7---|---5---5---2---3---|','D|---8---8---7---3---|---3---5---7---8---|---8---7---3---3---|','A|-------------------|-------------------|-------------------|','E|-------------------|-------------------|-------------------|']},
-  neoclassical:{label:'Neoclassical Tab â E Harmonic Minor',tab:['e|---12-15-16-15-12----|---16-15-12------------|---12-15-16-19-16-15-|','B|------------------15-|----------15-13-12-----|---------------------|','G|--------------------|-------------------14-12|---------------------|','D|--------------------|------------------------|---14-16-17-16-14----|','A|--------------------|------------------------|---------------------|','E|--------------------|------------------------|---------------------|','','e|---12-15-16-19-16-15-12---|','B|-------------------------15-13-12---|','G|-----------------------------------14-12-11---|','D|---------------------------------------------14-12-11---|','A|-----------------------------------------------|','E|-----------------------------------------------|']},
-  standard:{label:'Standard Tab â E Minor Pentatonic',tab:['e|---0---3---0---3---0---|---5---3---0-----------|---7---5---3---0-----|','B|---0---0---0---0---0---|---5---3---0---3---0---|---8---5---3---0-----|','G|---0---0---0---0---0---|---5---4---0---4---0---|---7---5---4---0-----|','D|---2---2---0---2---0---|---5---5---2---5---2---|---7---5---5---2-----|','A|---2---2---0---2---0---|---5---5---2---5---2---|---7---5---5---2-----|','E|---0---0---0---0---0---|---3---3---0---3---0---|---5---3---3---0-----|']},
-  rock:{label:'Rock Tab â E Power Chords',tab:['e|----------------------|----------------------|---------------------|','B|----------------------|----------------------|---------------------|','G|---9---9---x-9---9----|---6---6---x-6---6----|---4---4---x-4---4---|','D|---9---9---x-9---9----|---6---6---x-6---6----|---4---4---x-4---4---|','A|---7---7---x-7---7----|---4---4---x-4---4----|---2---2---x-2---2---|','E|----------------------|----------------------|---------------------|','','e|----------------------|','B|----------------------|','G|---2---2---x-2---4----|','D|---2---2---x-2---4----|','A|---0---0---x-0---2----|','E|----------------------|']}
+  blues:{label:'Blues Tab — A Blues Shuffle',tab:['e|---5---5--8b10--8--5--------5---5--8b10--8--5----|','B|---5---5-----------5--8--5--5---5-----------5----|','G|---5---5-----------5--------5---5-----------5----|','D|---7---7-----------7--------7---7-----------7----|','A|---7---7-----------7--------7---7-----------7----|','E|---5---5-----------5--------5---5-----------5----|','','e|---8b10-8-5-----5h7p5--------5------8b10r8--5----|','B|------------8-5-------8--5---5--8--5---------5----|','G|---------------------------5-7---7-----------5----|','D|--------------------------------------------7----|','A|--------------------------------------------7----|','E|--------------------------------------------5----|']},
+  jazz:{label:'Jazz Tab — Bb ii-V-I',tab:['e|---6---5---6---8---|---6---5---3---1---|---1---3---5---6---|','B|---6---6---6---6---|---6---6---3---3---|---3---3---3---6---|','G|---5---5---7---7---|---5---5---3---2---|---3---3---5---5---|','D|---8---7---8---8---|---8---7---3---3---|---3---5---5---7---|','A|-------------------|-------------------|-------------------|','E|-------------------|-------------------|-------------------|','','e|---8---6---5---3---|---3---5---6---8---|---6---5---3---1---|','B|---6---6---6---3---|---3---3---6---6---|---6---6---3---3---|','G|---7---5---5---2---|---3---3---5---7---|---5---5---2---3---|','D|---8---8---7---3---|---3---5---7---8---|---8---7---3---3---|','A|-------------------|-------------------|-------------------|','E|-------------------|-------------------|-------------------|']},
+  neoclassical:{label:'Neoclassical Tab — E Harmonic Minor',tab:['e|---12-15-16-15-12----|---16-15-12------------|---12-15-16-19-16-15-|','B|------------------15-|----------15-13-12-----|---------------------|','G|--------------------|-------------------14-12|---------------------|','D|--------------------|------------------------|---14-16-17-16-14----|','A|--------------------|------------------------|---------------------|','E|--------------------|------------------------|---------------------|','','e|---12-15-16-19-16-15-12---|','B|-------------------------15-13-12---|','G|-----------------------------------14-12-11---|','D|---------------------------------------------14-12-11---|','A|-----------------------------------------------|','E|-----------------------------------------------|']},
+  standard:{label:'Standard Tab — E Minor Pentatonic',tab:['e|---0---3---0---3---0---|---5---3---0-----------|---7---5---3---0-----|','B|---0---0---0---0---0---|---5---3---0---3---0---|---8---5---3---0-----|','G|---0---0---0---0---0---|---5---4---0---4---0---|---7---5---4---0-----|','D|---2---2---0---2---0---|---5---5---2---5---2---|---7---5---5---2-----|','A|---2---2---0---2---0---|---5---5---2---5---2---|---7---5---5---2-----|','E|---0---0---0---0---0---|---3---3---0---3---0---|---5---3---3---0-----|']},
+  rock:{label:'Rock Tab — E Power Chords',tab:['e|----------------------|----------------------|---------------------|','B|----------------------|----------------------|---------------------|','G|---9---9---x-9---9----|---6---6---x-6---6----|---4---4---x-4---4---|','D|---9---9---x-9---9----|---6---6---x-6---6----|---4---4---x-4---4---|','A|---7---7---x-7---7----|---4---4---x-4---4----|---2---2---x-2---2---|','E|----------------------|----------------------|---------------------|','','e|----------------------|','B|----------------------|','G|---2---2---x-2---4----|','D|---2---2---x-2---4----|','A|---0---0---x-0---2----|','E|----------------------|']}
 };
 
 const LICK_DB={
@@ -646,7 +645,7 @@ const LICK_DB={
 };
 
 const S={
-  screen:'import-screen',sample:null,genre:'standard',lickLen:'1bar',tempo:100,
+  screen:'import-screen',sample:null,genre:'standard',tempo:100,
   metronome:false,countIn:0,playing:false,playPos:0,
   loopA:null,loopB:null,
   stems:{guitar:.75,bass:.75,drums:.75,other:.75},
@@ -658,24 +657,31 @@ const S={
 
 let metroSynth,lickSynth,progSynth,progBass,progDrums;
 let metroLoop,progLoop;
-let metroBeat=0;
+let metroBeat=0, lickRun=0, progressionRun=0;
+function stopLicks(){if(window.stopRoutine)stopRoutine();if(window.stopPatternPractice)stopPatternPractice();lickRun++;if(lickSynth){lickSynth.dispose();lickSynth=null;}document.querySelectorAll('.lick-card.playing').forEach(c=>c.classList.remove('playing'));}
 
+let toneLoading;
 async function ensureTone(){
-  if(S.toneStarted)return;
-  await Tone.start();S.toneStarted=true;
-  metroSynth=new Tone.MembraneSynth({pitchDecay:.01,octaves:4,envelope:{attack:.001,decay:.1,sustain:0,release:.05}}).toDestination();
-  metroSynth.volume.value=-6;
-  lickSynth=new Tone.Synth({oscillator:{type:'sawtooth'},envelope:{attack:.01,decay:.3,sustain:.2,release:.3}}).toDestination();
-  lickSynth.volume.value=-8;
-  progSynth=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'triangle'},envelope:{attack:.05,decay:.4,sustain:.5,release:.8}}).toDestination();
-  progSynth.volume.value=-10;
-  progBass=new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:.02,decay:.3,sustain:.6,release:.4}}).toDestination();
-  progBass.volume.value=-6;
-  progDrums={
-    kick:new Tone.MembraneSynth({pitchDecay:.05,octaves:6,envelope:{attack:.001,decay:.2,sustain:0,release:.1}}).toDestination(),
-    hat:new Tone.NoiseSynth({noise:{type:'white'},envelope:{attack:.001,decay:.05,sustain:0,release:.02}}).toDestination()
-  };
-  progDrums.kick.volume.value=-4;progDrums.hat.volume.value=-14;
+  if(S.toneStarted){await Tone.start();return;}
+  if(toneLoading)return toneLoading;
+  toneLoading=(async()=>{
+    if(typeof Tone==='undefined')throw new Error('Audio engine unavailable. Reload and try again.');
+    await Tone.start();
+    showToast('Loading recorded guitar and bass…');
+    await StudioSound.load();
+    metroSynth=new Tone.MembraneSynth({pitchDecay:.01,octaves:4,envelope:{attack:.001,decay:.1,sustain:0,release:.05}}).toDestination();
+    metroSynth.volume.value=-12;
+    lickSynth=StudioSound.voice('guitar');
+    progSynth=StudioSound.voice('guitar');
+    progBass=StudioSound.voice('bass');
+    progDrums={
+      kick:new Tone.MembraneSynth({pitchDecay:.03,octaves:3,envelope:{attack:.002,decay:.15,sustain:0,release:.08}}).toDestination(),
+      hat:new Tone.NoiseSynth({noise:{type:'pink'},envelope:{attack:.002,decay:.035,sustain:0,release:.025}}).connect(new Tone.Filter(6500,'highpass').toDestination())
+    };
+    progDrums.kick.volume.value=-16;progDrums.hat.volume.value=-25;
+    S.toneStarted=true;
+  })();
+  try{await toneLoading;}catch(error){showToast(error.message);throw error;}finally{toneLoading=null;}
 }
 
 function startMetronome(){
@@ -688,28 +694,26 @@ function startMetronome(){
   metroLoop.start(0);Tone.Transport.bpm.value=S.tempo*1.2;
   if(Tone.Transport.state!=='started')Tone.Transport.start();
 }
-function stopMetronome(){if(metroLoop){metroLoop.stop();metroLoop.dispose();metroLoop=null;}metroBeat=0;updateBeatDots(-1,false);}
+function stopMetronome(){if(metroLoop){metroLoop.stop();metroLoop.dispose();metroLoop=null;}metroBeat=0;updateBeatDots(-1,false);if(typeof Tone!=='undefined'&&!S.progPlaying)Tone.Transport.stop();}
 function updateBeatDots(idx,accent){
   document.querySelectorAll('#beat-dots .beat-dot').forEach((d,i)=>{
     d.classList.remove('on','accent');if(i===idx)d.classList.add(accent?'accent':'on');
   });
 }
 
-async function playLickPreview(lick){
-  await ensureTone();const now=Tone.now();
-  lick.notes.forEach((n,i)=>{const freq=NOTE_FREQ[n]||440;lickSynth.triggerAttackRelease(freq,'8n',now+i*0.25);});
-}
-
 async function startProgression(){
-  await ensureTone();stopProgression();
+  stopLicks();
+  const request=++progressionRun;
+  await ensureTone();if(request!==progressionRun)return;stopProgression();
   const chords=getProgChords(S.progKey,S.progMode,S.progType);
   S.progPlaying=true;S.progChordIdx=0;Tone.Transport.bpm.value=S.progTempo;
   let beatCount=0;
   progLoop=new Tone.Loop(time=>{
     const ci=Math.floor(beatCount/4)%chords.length;const bib=beatCount%4;const ch=chords[ci];
     if(bib===0){
-      progSynth.triggerAttackRelease(chordFreqs(ch.root,ch.quality,4),'2n',time);
-      progBass.triggerAttackRelease(chordFreqs(ch.root,'maj',3)[0],'4n',time);
+      const notes=chordFreqs(ch.root,ch.quality,3);
+      notes.forEach((note,index)=>progSynth.triggerAttackRelease(Tone.Frequency(note).toNote(),'2n',time+index*.019,.58+Math.random()*.1));
+      progBass.triggerAttackRelease(Tone.Frequency(chordFreqs(ch.root,'maj',2)[0]).toNote(),'4n',time,.75);
     }
     if(bib===0||bib===2)progDrums.kick.triggerAttackRelease('C1','8n',time);
     progDrums.hat.triggerAttackRelease('8n',time);
@@ -719,8 +723,8 @@ async function startProgression(){
   el('prog-play').textContent='Playing...';
 }
 function stopProgression(){
-  S.progPlaying=false;if(progLoop){progLoop.stop();progLoop.dispose();progLoop=null;}
-  if(Tone.Transport.state==='started'&&!S.metronome)Tone.Transport.stop();
+  progressionRun++;S.progPlaying=false;if(progSynth){progSynth.dispose();progSynth=StudioSound.voice('guitar');}if(progBass){progBass.dispose();progBass=StudioSound.voice('bass');}if(progLoop){progLoop.stop();progLoop.dispose();progLoop=null;}
+  if(typeof Tone!=='undefined'&&Tone.Transport.state==='started'&&!metroLoop)Tone.Transport.stop();
   S.progChordIdx=-1;renderChordChart();el('prog-play').textContent='\u25B6 Play';
 }
 
@@ -753,11 +757,32 @@ function drawWaveform(){
   }
   const px=S.playPos*w;ctx.strokeStyle='#c00020';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,h);ctx.stroke();
-  const dur=180;el('wave-pos').textContent=fmtTime(S.playPos*dur);el('wave-dur').textContent=fmtTime(dur);
+  const dur=Number.isFinite(audioTrack.duration)?audioTrack.duration:0;el('wave-pos').textContent=fmtTime(S.playPos*dur);el('wave-dur').textContent=fmtTime(dur);
 }
 function fmtTime(s){return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');}
 
-function renderTab(){const d=TAB_DATA[S.genre]||TAB_DATA.standard;el('tab-genre-label').textContent=d.label;el('tab-content').textContent=d.tab.join('\n');}
+let notationMode='shapes';
+const STUDY_SHAPES={standard:['Em','G','D','C'],blues:['A7','D7','E7'],jazz:['Cm7','F7','Bbmaj7'],neoclassical:['Em','Am','B7'],rock:['E5','Db5','B5','A5']};
+function renderTab(){
+  const d=TAB_DATA[S.genre]||TAB_DATA.standard;
+  el('tab-genre-label').textContent=d.label;
+  el('tab-content').innerHTML=GuitarNotation.tabs(d.tab);
+  el('study-shapes').innerHTML=(STUDY_SHAPES[S.genre]||STUDY_SHAPES.standard).map(n=>GuitarNotation.card(n)).join('');
+  bindChordPreviews(el('study-shapes'));setNotationMode(notationMode);if(window.loadStudyPattern)loadStudyPattern();
+}
+function setNotationMode(mode){
+  notationMode=mode;el('study-shapes').hidden=mode!=='shapes';el('tab-content').hidden=mode!=='tabs';
+  el('view-shapes').setAttribute('aria-pressed',mode==='shapes');el('view-tabs').setAttribute('aria-pressed',mode==='tabs');
+  el('notation-help').textContent=mode==='shapes'?'Chord shapes for this study · × don’t play · ○ open string · high E at top · nut on the left':'Read left to right · numbers are frets · b bend, h hammer-on, p pull-off, ~ vibrato · scroll each passage';
+}
+function bindChordPreviews(container){
+  container.querySelectorAll('[data-chord]').forEach(button=>button.onclick=async()=>{
+    stopLicks();const request=lickRun;
+    try{await ensureTone();if(request!==lickRun)return;if(lickSynth)lickSynth.dispose();lickSynth=StudioSound.voice('guitar');
+      GuitarNotation.midi(button.dataset.chord).forEach((note,i)=>lickSynth.triggerAttackRelease(Tone.Frequency(note,'midi').toNote(),1.2,Tone.now()+.03+i*.025,.8));
+    }catch(error){showToast(error.message);}
+  });
+}
 
 function renderLicks(){
   const licks=LICK_DB[S.genre]||LICK_DB.standard;const container=el('lick-list');container.innerHTML='';
@@ -767,20 +792,31 @@ function renderLicks(){
     container.appendChild(card);
   });
   container.querySelectorAll('.lick-act.preview').forEach(btn=>{
-    btn.onclick=async()=>{const l=licks[+btn.dataset.idx];btn.closest('.lick-card').classList.add('playing');await playLickPreview(l);setTimeout(()=>btn.closest('.lick-card').classList.remove('playing'),l.notes.length*250+200);};
+    btn.textContent='View pattern';btn.onclick=()=>selectLickPattern(licks[+btn.dataset.idx]);
   });
   container.querySelectorAll('.lick-act.loop').forEach(btn=>{
-    btn.onclick=async()=>{const l=licks[+btn.dataset.idx];for(let r=0;r<3;r++){await playLickPreview(l);await sleep(l.notes.length*260);}};
+    btn.textContent='▶ Practice';btn.onclick=()=>{selectLickPattern(licks[+btn.dataset.idx]);startPatternPractice();};
   });
   container.querySelectorAll('.lick-act.fav').forEach(btn=>{
-    btn.onclick=()=>{const k=S.genre+(+btn.dataset.idx);if(S.favLicks.has(k)){S.favLicks.delete(k);btn.classList.remove('active');}else{S.favLicks.add(k);btn.classList.add('active');}};
+    btn.onclick=()=>{const k=S.genre+(+btn.dataset.idx);if(S.favLicks.has(k)){S.favLicks.delete(k);btn.classList.remove('active');}else{S.favLicks.add(k);btn.classList.add('active');}try{localStorage.setItem('gtab-favorites',JSON.stringify([...S.favLicks]));}catch{}};
   });
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 function renderChordChart(){
-  const chords=getProgChords(S.progKey,S.progMode,S.progType);
-  el('chord-chart').innerHTML=chords.map((ch,i)=>`<div class="chord-box ${i===S.progChordIdx?'active':''}"><div class="numeral">${NUMERALS_MAJ[ch.degree]}</div><div class="name">${ch.name}</div></div>`).join('');
+  const chords=getProgChords(S.progKey,S.progMode,S.progType),chart=el('chord-chart');
+  const signature=chords.map(ch=>ch.name).join('|');
+  if(chart.dataset.chords!==signature){
+    chart.dataset.chords=signature;
+    chart.innerHTML=chords.map(ch=>`<div class="progression-shape">${GuitarNotation.card(ch.name)}</div>`).join('');
+    bindChordPreviews(chart);
+  }
+  Array.from(chart.children).forEach((node,i)=>{
+    const ch=chords[i],active=S.progPlaying&&i===S.progChordIdx;
+    node.classList.toggle('active',active);
+    const numeral=['min','dim'].includes(ch.quality)?NUMERALS_MAJ[ch.degree].toLowerCase():NUMERALS_MAJ[ch.degree];
+    node.querySelector('.shape-foot').textContent=numeral+(ch.quality==='dim'?'°':'')+(active?' · Playing':' · Preview');
+  });
 }
 function renderScaleNotes(){
   const notes=scaleNotes(S.progKey,S.progMode);
@@ -794,80 +830,175 @@ function renderProgLicks(){
 
 function el(id){return document.getElementById(id);}
 function showScreen(id){
+  if(S.screen!==id){stopLicks();window.PlayingCoach?.close();audioTrack.pause();S.playing=false;el('t-play').classList.remove('active');stopMetronome();if(S.screen==='prog-screen')stopProgression();}
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   el(id).classList.add('active');S.screen=id;
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));
 }
 function showToast(msg){const t=el('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 
-function runProcessing(sampleName){
-  const proc=el('processing');proc.classList.add('active');const vu=el('proc-vu');
-  const steps=proc.querySelectorAll('.proc-step');
-  steps.forEach(s=>{s.classList.remove('done','active');});vu.style.width='0%';
-  let i=0;const iv=setInterval(()=>{
-    if(i>0)steps[i-1].classList.remove('active');
-    if(i>0)steps[i-1].classList.add('done');
-    if(i<4){steps[i].classList.add('active');vu.style.width=((i+1)/4*100)+'%';}
-    i++;if(i>4){clearInterval(iv);setTimeout(()=>{
-      proc.classList.remove('active');S.sample=sampleName;generateWaveData();
-      showScreen('practice-screen');el('nav-practice').disabled=false;el('nav-export').disabled=false;
-      renderTab();renderLicks();drawWaveform();
-    },400);}
-  },600);
+const audioTrack=new Audio();
+let uploadedFile=null, audioURL=null, uploadVersion=0;
+audioTrack.onloadedmetadata=()=>drawWaveform();
+let stemMixer=null, separationId=null, separationVersion=0, stemAbort=null, useStems=false;
+function applyStemMix(){if(stemMixer)stemMixer.mix(S.stems,S.muted);}
+function setStemMode(enabled){
+  useStems=enabled&&!!stemMixer;audioTrack.muted=useStems;
+  el('stem-controls').inert=!useStems;el('stem-controls').style.opacity=useStems?'1':'.4';
+  el('original-mix').textContent=useStems?'Use original':'Use separated stems';
+  if(stemMixer){stemMixer.stop();if(useStems&&!audioTrack.paused)stemMixer.start(audioTrack.currentTime,audioTrack.playbackRate).catch(error=>showToast(error.message));}
 }
+async function resetSeparation(){
+  separationVersion++;
+  if(stemAbort)stemAbort.abort();stemAbort=null;
+  const id=separationId;separationId=null;
+  if(stemMixer)stemMixer.dispose();stemMixer=null;setStemMode(false);
+  el('download-stems').hidden=true;el('download-stems').removeAttribute('href');el('original-mix').hidden=true;el('cancel-separation').hidden=true;
+  el('separate-btn').disabled=!uploadedFile;
+  if(id)try{await fetch('/api/jobs/'+id,{method:'DELETE',headers:{'X-GTab-Request':'1'}});}catch{}
+}
+async function separateTrack(){
+  if(!uploadedFile)return;
+  const file=uploadedFile;
+  const resetting=resetSeparation();
+  const version=separationVersion;el('separate-btn').disabled=true;
+  await resetting;
+  if(version!==separationVersion||file!==uploadedFile)return;
+  const controller=new AbortController();stemAbort=controller;
+  const status=message=>{if(version===separationVersion)el('stem-status').textContent=message;};
+  el('separate-btn').disabled=true;el('cancel-separation').hidden=false;
+  try{
+    const health=await fetch('/api/health',{signal:controller.signal});
+    if(!health.ok || !(await health.json()).ready)throw new Error('Start the GTab backend with .venv/bin/python backend/server.py to separate instruments.');
+    status('Sending audio to the local separation worker…');
+    const response=await fetch('/api/jobs',{method:'POST',headers:{'X-GTab-Request':'1','X-Audio-Extension':'.'+file.name.split('.').pop().toLowerCase(),'Content-Type':'application/octet-stream'},body:file});
+    const job=await response.json();
+    if(!response.ok)throw new Error(job.error||'Separation could not start.');
+    if(version!==separationVersion){await fetch('/api/jobs/'+job.id,{method:'DELETE',headers:{'X-GTab-Request':'1'}});return;}
+    separationId=job.id;
+    while(version===separationVersion){
+      const poll=await fetch('/api/jobs/'+job.id,{signal:controller.signal});
+      const current=await poll.json();
+      if(!poll.ok)throw new Error(current.error||'Could not check separation.');
+      status(current.message);
+      if(current.status==='failed'||current.status==='cancelled')throw new Error(current.message);
+      if(current.status==='complete'){
+        status('Loading six synchronized stems…');
+        const mixer=new StemMixer();
+        try{await mixer.load(current.stems,controller.signal);}catch(error){mixer.dispose();throw error;}
+        if(version!==separationVersion){mixer.dispose();return;}
+        stemMixer=mixer;applyStemMix();setStemMode(true);
+        el('download-stems').href=current.download;el('download-stems').hidden=false;el('original-mix').hidden=false;
+        status('Six stems ready. Mute Guitar to play along with the band.');
+        break;
+      }
+      await new Promise(resolve=>setTimeout(resolve,1500));
+    }
+  }catch(error){if(error.name!=='AbortError')status(error.message);}
+  finally{if(version===separationVersion){el('cancel-separation').hidden=true;el('separate-btn').disabled=!uploadedFile;}}
+}
+audioTrack.addEventListener('play',()=>{if(useStems)stemMixer.start(audioTrack.currentTime,audioTrack.playbackRate).catch(error=>showToast(error.message));});
+audioTrack.addEventListener('pause',()=>{if(stemMixer)stemMixer.stop();});
+audioTrack.addEventListener('seeking',()=>{if(useStems&&!audioTrack.paused)stemMixer.start(audioTrack.currentTime,audioTrack.playbackRate).catch(error=>showToast(error.message));});
+audioTrack.addEventListener('ratechange',()=>{if(useStems&&!audioTrack.paused)stemMixer.start(audioTrack.currentTime,audioTrack.playbackRate).catch(error=>showToast(error.message));});
+audioTrack.addEventListener('timeupdate',()=>{if(useStems&&!audioTrack.paused)stemMixer.sync(audioTrack.currentTime,audioTrack.playbackRate);});
 
+function runProcessing(sampleName){
+  audioTrack.pause();resetSeparation(); S.playing=false; S.playPos=0;el('stem-status').textContent='Separate an uploaded track to practice with individual instruments.';
+  S.sample=sampleName;S.loopA=null;S.loopB=null;el('genre-sel').value=S.genre;
+  if(sampleName!=='upload'){uploadedFile=null;audioTrack.removeAttribute('src');audioTrack.load();S.waveData=Array(400).fill(0);}
+  el('separate-btn').disabled=!uploadedFile;showScreen('practice-screen');el('nav-practice').disabled=false;el('nav-export').disabled=false;
+  el('mode-badge').textContent=S.genre;
+  renderTab();renderLicks();drawWaveform();
+  el('tab-genre-label').textContent+=(sampleName==='upload'?' · Reference study (not a transcription)':' · Practice study');
+}
+async function loadAudio(file){
+  if(!file || !/\.(mp3|wav|m4a|flac|ogg)$/i.test(file.name)){showToast('Choose an MP3, WAV, M4A, FLAC or OGG audio file.');return;}
+  if(file.size>100*1024*1024){showToast('Please choose an audio file smaller than 100 MB.');return;}
+  const version=++uploadVersion;
+  const context=new (window.AudioContext||window.webkitAudioContext)();
+  try{
+    const buffer=await context.decodeAudioData(await file.arrayBuffer());
+    if(version!==uploadVersion)return;
+    if(audioURL)URL.revokeObjectURL(audioURL);
+    audioURL=URL.createObjectURL(file);uploadedFile=file;audioTrack.src=audioURL;
+    const data=buffer.getChannelData(0),step=Math.max(1,Math.floor(data.length/400));
+    S.waveData=Array.from({length:400},(_,i)=>{let peak=0;for(let j=i*step;j<Math.min((i+1)*step,data.length);j++)peak=Math.max(peak,Math.abs(data[j]));return peak*(i%2?1:-1);});
+    runProcessing('upload');showToast('Ready: '+file.name);
+  }catch(error){showToast('This audio file could not be decoded. Try an MP3 or WAV.');}
+  finally{await context.close();}
+}
+function downloadFile(name,content,type='text/plain'){
+  const url=URL.createObjectURL(content instanceof Blob?content:new Blob([content],{type}));
+  const link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.nav-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{if(btn.disabled)return;showScreen(btn.dataset.screen);if(btn.dataset.screen==='prog-screen')renderProgUI();});
   });
+  try{S.favLicks=new Set(JSON.parse(localStorage.getItem('gtab-favorites')||'[]'));}catch{}
+  document.querySelectorAll('.lib-item,.export-card,#upload-zone').forEach(node=>{node.tabIndex=0;node.setAttribute('role','button');node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();node.click();}});});
+  document.querySelectorAll('select,input[type=range]').forEach(node=>node.setAttribute('aria-label',node.id.replaceAll('-',' ')));
+  el('separate-btn').onclick=separateTrack;el('cancel-separation').onclick=()=>{resetSeparation();el('stem-status').textContent='Separation cancelled. You can try again.';};el('original-mix').onclick=()=>setStemMode(!useStems);
   const uz=el('upload-zone'),fi=el('file-input');
   uz.onclick=()=>fi.click();
   uz.ondragover=e=>{e.preventDefault();uz.classList.add('drag-over');};
   uz.ondragleave=()=>uz.classList.remove('drag-over');
-  uz.ondrop=e=>{e.preventDefault();uz.classList.remove('drag-over');if(e.dataTransfer.files.length)runProcessing('upload');};
-  fi.onchange=()=>{if(fi.files.length)runProcessing('upload');};
+  uz.ondrop=e=>{e.preventDefault();uz.classList.remove('drag-over');if(e.dataTransfer.files.length)loadAudio(e.dataTransfer.files[0]);};
+  fi.onchange=()=>{if(fi.files.length)loadAudio(fi.files[0]);};
   document.querySelectorAll('.lib-item').forEach(item=>{
-    item.onclick=()=>{const s=item.dataset.sample;S.genre=s==='neo'?'neoclassical':s;el('genre-sel').value=S.genre;runProcessing(s);};
+    item.onclick=()=>{uploadVersion++;const s=item.dataset.sample;S.genre=s==='neo'?'neoclassical':s;el('genre-sel').value=S.genre;runProcessing(s);};
   });
   let playInterval;
-  el('t-play').onclick=async()=>{await ensureTone();S.playing=true;el('t-play').classList.add('active');
-    if(S.metronome)startMetronome();clearInterval(playInterval);
-    playInterval=setInterval(()=>{S.playPos+=.002*(S.tempo/100);if(S.loopB&&S.playPos>S.loopB)S.playPos=S.loopA||0;if(S.playPos>1)S.playPos=0;drawWaveform();},50);};
-  el('t-pause').onclick=()=>{S.playing=false;el('t-play').classList.remove('active');clearInterval(playInterval);stopMetronome();};
-  el('t-stop').onclick=()=>{S.playing=false;S.playPos=0;el('t-play').classList.remove('active');clearInterval(playInterval);stopMetronome();drawWaveform();};
-  el('tempo-slider').oninput=e=>{S.tempo=+e.target.value;el('tempo-val').textContent=S.tempo+'%';if(Tone.Transport.state==='started')Tone.Transport.bpm.value=S.tempo*1.2;};
+  el('t-play').onclick=async()=>{
+    if(!uploadedFile){showToast('Choose a lick Preview to hear this study, or upload a backing track.');return;}
+    audioTrack.playbackRate=S.tempo/100;
+    try{await audioTrack.play();}catch(error){showToast('Unable to play this file. Try another audio format.');return;}
+    S.playing=true;el('t-play').classList.add('active');
+    if(S.metronome){await ensureTone();startMetronome();}
+  };
+  audioTrack.ontimeupdate=()=>{if(S.loopB!==null&&audioTrack.currentTime>=S.loopB*audioTrack.duration)audioTrack.currentTime=(S.loopA||0)*audioTrack.duration;S.playPos=audioTrack.currentTime/audioTrack.duration||0;drawWaveform();};
+  const pause=()=>{stopLicks();audioTrack.pause();S.playing=false;el('t-play').classList.remove('active');stopMetronome();};
+  audioTrack.onended=pause;
+  el('t-pause').onclick=pause;
+  el('t-stop').onclick=()=>{pause();if(uploadedFile)audioTrack.currentTime=0;S.playPos=0;drawWaveform();};
+  el('tempo-slider').oninput=e=>{S.tempo=+e.target.value;audioTrack.playbackRate=S.tempo/100;el('tempo-val').textContent=S.tempo+'%';if(typeof Tone!=='undefined'&&S.playing)Tone.Transport.bpm.value=S.tempo*1.2;};
+  el('countin-sel').disabled=true;el('countin-sel').title='Count-in is not available yet';
   el('metro-cb').onchange=async e=>{S.metronome=e.target.checked;if(S.metronome&&S.playing){await ensureTone();startMetronome();}else stopMetronome();};
   el('countin-sel').onchange=e=>S.countIn=+e.target.value;
   el('waveform').onclick=e=>{const r=e.target.getBoundingClientRect();const p=(e.clientX-r.left)/r.width;
     if(e.shiftKey){S.loopB=p;if(S.loopA!==null&&S.loopB<S.loopA){const t=S.loopA;S.loopA=S.loopB;S.loopB=t;}}
-    else if(e.altKey||e.metaKey){S.loopA=p;S.loopB=null;}else S.playPos=p;drawWaveform();};
+    else if(e.altKey||e.metaKey){S.loopA=p;S.loopB=null;}else {S.playPos=p;if(uploadedFile&&Number.isFinite(audioTrack.duration))audioTrack.currentTime=p*audioTrack.duration;}drawWaveform();};
   el('waveform').ondblclick=()=>{S.loopA=null;S.loopB=null;drawWaveform();};
-  el('genre-sel').onchange=e=>{S.genre=e.target.value;el('mode-badge').textContent=S.genre==='standard'?'Standard':S.genre.charAt(0).toUpperCase()+S.genre.slice(1);renderTab();renderLicks();};
-  document.querySelectorAll('#lick-len-bar .len-btn').forEach(btn=>{
-    btn.onclick=()=>{document.querySelectorAll('#lick-len-bar .len-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');S.lickLen=btn.dataset.len;};
-  });
-  el('tab-degree-toggle').onclick=()=>{S.showDegrees=!S.showDegrees;el('tab-degree-toggle').textContent=S.showDegrees?'Fret Numbers':'Scale Degrees';renderTab();};
+  el('genre-sel').onchange=e=>{stopLicks();S.genre=e.target.value;el('mode-badge').textContent=S.genre==='standard'?'Standard':S.genre.charAt(0).toUpperCase()+S.genre.slice(1);renderTab();renderLicks();};
+  el('view-shapes').onclick=()=>setNotationMode('shapes');el('view-tabs').onclick=()=>setNotationMode('tabs');
   document.querySelectorAll('.amp-knob').forEach(knob=>{
     const stem=knob.dataset.stem;let dragging=false,startY;
-    knob.onmousedown=e=>{dragging=true;startY=e.clientY;e.preventDefault();};
-    window.addEventListener('mousemove',e=>{if(!dragging)return;S.stems[stem]=Math.max(0,Math.min(1,S.stems[stem]+(startY-e.clientY)*.008));startY=e.clientY;updateKnob(stem);});
-    window.addEventListener('mouseup',()=>dragging=false);
+    knob.tabIndex=0;knob.setAttribute('role','slider');knob.setAttribute('aria-label',stem+' volume');knob.setAttribute('aria-valuemin','0');knob.setAttribute('aria-valuemax','100');knob.setAttribute('aria-valuenow','75');
+    knob.onkeydown=e=>{if(['ArrowUp','ArrowRight','ArrowDown','ArrowLeft'].includes(e.key)){e.preventDefault();S.stems[stem]=Math.max(0,Math.min(1,S.stems[stem]+(['ArrowUp','ArrowRight'].includes(e.key)?.05:-.05)));updateKnob(stem);}};
+    knob.style.touchAction='none';knob.onpointerdown=e=>{dragging=true;startY=e.clientY;knob.setPointerCapture(e.pointerId);e.preventDefault();};
+    knob.addEventListener('pointermove',e=>{if(!dragging)return;S.stems[stem]=Math.max(0,Math.min(1,S.stems[stem]+(startY-e.clientY)*.008));startY=e.clientY;updateKnob(stem);});
+    knob.addEventListener('pointerup',()=>dragging=false);knob.addEventListener('pointercancel',()=>dragging=false);
     knob.ondblclick=()=>{S.stems[stem]=.75;updateKnob(stem);};
   });
-  function updateKnob(stem){el('val-'+stem).textContent=Math.round(S.stems[stem]*100)+'%';el('knob-'+stem).style.transform=`rotate(${(S.stems[stem]-.5)*270}deg)`;}
+  function updateKnob(stem){applyStemMix();el('knob-'+stem).setAttribute('aria-valuenow',Math.round(S.stems[stem]*100));el('val-'+stem).textContent=Math.round(S.stems[stem]*100)+'%';el('knob-'+stem).style.transform=`rotate(${(S.stems[stem]-.5)*270}deg)`;}
   document.querySelectorAll('.stem-mute').forEach(btn=>{
-    btn.onclick=()=>{const s=btn.dataset.stem;S.muted[s]=!S.muted[s];btn.classList.toggle('muted',S.muted[s]);btn.textContent=S.muted[s]?'Muted':'Mute';};
+    btn.onclick=()=>{const s=btn.dataset.stem;S.muted[s]=!S.muted[s];btn.classList.toggle('muted',S.muted[s]);btn.textContent=S.muted[s]?'Muted':'Mute';btn.setAttribute('aria-pressed',S.muted[s]);applyStemMix();};
   });
-  function renderProgUI(){S.progKey=el('prog-key').value;S.progMode=el('prog-mode').value;S.progType=el('prog-type').value;S.progTempo=+el('prog-tempo').value;renderChordChart();renderScaleNotes();renderProgLicks();}
+  function renderProgUI(){S.progKey=el('prog-key').value;S.progMode=el('prog-mode').value;S.progType=el('prog-type').value;S.progTempo=+el('prog-tempo').value;renderChordChart();renderScaleNotes();renderProgLicks();if(S.progPlaying)startProgression();}
   el('prog-key').onchange=renderProgUI;el('prog-mode').onchange=renderProgUI;el('prog-type').onchange=renderProgUI;
   el('prog-tempo').oninput=e=>{S.progTempo=+e.target.value;el('prog-tempo-val').textContent=S.progTempo;if(S.progPlaying)Tone.Transport.bpm.value=S.progTempo;};
-  el('prog-play').onclick=()=>startProgression();el('prog-stop').onclick=()=>stopProgression();
+  el('prog-play').onclick=()=>startProgression().catch(error=>showToast(error.message));el('prog-stop').onclick=()=>stopProgression();
   renderProgUI();
   document.querySelectorAll('.export-card').forEach(card=>{
-    card.onclick=()=>{const names={gp:'Guitar Pro (.gpx)',xml:'MusicXML',wav:'Backing Track (WAV)',licks:'Lick Pack'};showToast('Exported as '+(names[card.dataset.fmt]||card.dataset.fmt));};
+    card.onclick=()=>{const fmt=card.dataset.fmt;if(fmt==='tab')downloadFile('gtab-'+S.genre+'.txt',TAB_DATA[S.genre].label+'\n\n'+TAB_DATA[S.genre].tab.join('\n'));if(fmt==='session')downloadFile('gtab-settings.json',JSON.stringify({genre:S.genre,key:S.progKey,mode:S.progMode,progression:S.progType,bpm:S.progTempo,playbackSpeed:S.tempo},null,2),'application/json');if(fmt==='wav'){if(!uploadedFile){showToast('Upload an audio track first.');return;}downloadFile(uploadedFile.name,uploadedFile);}if(fmt==='licks')downloadFile('gtab-licks.txt',(LICK_DB[S.genre]||[]).map(l=>l.name+' · '+l.bpm+' BPM\n'+l.tab).join('\n\n'));showToast('Download ready');};
   });
   window.addEventListener('resize',()=>{if(S.waveData.length)drawWaveform();});
 });
 </script>
+<script src="practice-ui.js"></script>
+<script src="performance.js"></script>
+<script src="routine.js"></script>
+<script src="dashboard.js"></script>
 </body>
 </html>

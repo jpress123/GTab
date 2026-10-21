@@ -1,0 +1,9 @@
+.venv/
+.gtab-data/
+__pycache__/
+*.pyc
+.DS_Store
+# Local visual verification captures
+*-preview.png
+preview.png
+horizontal-diagrams.png

@@ -1,0 +1,7 @@
+# Python 3.10–3.12. Matched Torch/torchaudio versions keep Demucs compatible.
+demucs==4.0.1
+torch==2.5.1
+torchaudio==2.5.1
+numpy==1.26.4
+soundfile==0.13.1
+imageio-ffmpeg==0.6.0

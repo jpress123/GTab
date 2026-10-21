@@ -1,0 +1,91 @@
+/* Progression-led exercises: a shared fret model drives sound and notation. */
+(function(root){
+const names=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const tuning=[40,45,50,55,59,64],strings=['E','A','D','G','B','e'];
+const presets={pop:{label:'Major · I–V–vi–IV',degrees:[0,4,5,3],minor:false},classic:{label:'Major · I–IV–V–I',degrees:[0,3,4,0],minor:false},minor:{label:'Minor · i–VI–III–VII',degrees:[0,5,2,6],minor:true}};
+function build(key=0,preset='pop',types=['triads','pentatonic','scales'],rounds=4,options={}){
+ const p=presets[preset],scale=p.minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11];
+ const pent=p.minor?[0,3,5,7,10]:[0,2,4,7,9];
+ const chords=p.degrees.map(d=>{const tones=[0,2,4].map(x=>(key+scale[(d+x)%7])%12),pc=tones[0];return {pc,tones,name:names[pc]+(((tones[1]-pc+12)%12)===3?'m':'')};});
+ // One five-fret position, starting at the tonic on the sixth string.
+ const start=(key-4+12)%12;
+ const positions=intervals=>tuning.flatMap((open,i)=>Array.from({length:5},(_,j)=>({string:strings[i],fret:start+j,midi:open+start+j}))).filter(n=>intervals.includes((n.midi-key+12)%12)).sort((a,b)=>a.midi-b.midi);
+ const groups=[];let previousTriad;
+ types.forEach(type=>chords.forEach((chord,ci)=>{
+  let notes;
+  if(type==='triads'){
+   let best;for(let g=0;g<=12;g++)for(let b=0;b<=12;b++)for(let e=0;e<=12;e++){
+    const f=[g,b,e],ns=f.map((v,i)=>({string:strings[i+3],fret:v,midi:tuning[i+3]+v}));
+    if(new Set(ns.map(n=>n.midi%12)).size!==3||!ns.every(n=>chord.tones.includes(n.midi%12))||Math.max(...f)-Math.min(...f)>3)continue;
+    const cost=previousTriad?f.reduce((sum,v,i)=>sum+Math.abs(v-previousTriad[i]),0)*4+Math.max(...f):Math.max(...f)+2*(Math.max(...f)-Math.min(...f));if(!best||cost<best.cost)best={cost,ns};
+   }previousTriad=best.ns.map(n=>n.fret);notes=[0,1,2,1,0,1,2,1].map(i=>best.ns[i]);
+  }else{
+   const pool=positions(type==='pentatonic'?pent:scale);let first=pool.findIndex(n=>n.midi%12===chord.pc);if(first<0)first=pool.findIndex(n=>chord.tones.includes(n.midi%12));
+   notes=[0,1,2,1,0,2,1,0].map(i=>pool[(first+i)%pool.length]);
+  }
+  const rows=['e','B','G','D','A','E'].map(str=>str+'|'+notes.map(n=>n.string===str?String(n.fret).padEnd(4,'-'):'----').join('')+'|');
+  const model=PracticePatterns.parse(rows);groups.push({type,chord,ci,model});
+ }));
+ const selected=Number.isInteger(options.transition)?types.flatMap(type=>[options.transition,(options.transition+1)%4].map(ci=>groups.find(g=>g.type===type&&g.ci===ci))):groups;
+ const events=[];
+ if(options.countIn&&selected.length)for(let step=0;step<8;step++)events.push({countIn:true,step,notes:[]});
+ types.forEach(type=>{for(let round=1;round<=rounds;round++){
+  const sequence=selected.filter(g=>g.type===type);
+  const phases=options.mode==='response'?['listen','answer','alone']:options.mode==='ear'?['listen','answer']:['together'];
+  phases.forEach(phase=>sequence.forEach(group=>group.model.events.forEach((e,step)=>events.push({...e,group,step,round,phase,rest:options.phrasing&&group.type!=='triads'&&[3,6].includes(step)}))));
+ }});
+
+ return {chords,groups,events,start,key,minor:p.minor};
+}
+root.RoutineModel={build,presets};
+if(typeof document==='undefined')return;
+const titles={triads:'Triads',pentatonic:'Pentatonic',scales:'Scales'};
+const tips={triads:'Pick the three chord tones on G, B and high e. Keep each note clear and make the next chord change without rushing.',pentatonic:'Use the key’s pentatonic shape. Hear how the same notes relate to each chord; each phrase starts on an available chord tone.',scales:'Use the key’s major or natural minor scale. Play evenly and listen to the opening chord tone of each phrase.'};
+let plan,voice,token=0,activeGroup,activePhase,clickVoice;
+const runner=new PracticePatterns.Runner({play(event,duration){
+ root.PlayingCoach?.expect(event,duration);
+ if(event.countIn){if(event.step%2===0)clickVoice.triggerAttackRelease('C5',.04,Tone.now(),.35);return;}
+ if(activeGroup!==event.group||activePhase!==event.phase){activeGroup=event.group;activePhase=event.phase;drawGroup(activeGroup);}
+ if(event.step===0&&event.phase!=='alone'){GuitarNotation.midi(event.group.chord.name).forEach((m,i)=>voice.triggerAttackRelease(Tone.Frequency(m,'midi').toNote(),duration*7,Tone.now()+.02+i*.012,.28));}
+ if(!event.rest&&['listen','together'].includes(event.phase))voice.triggerAttackRelease(Tone.Frequency(event.notes[0].midi,'midi').toNote(),duration*.82,Tone.now()+.03,.8);
+},onStep(i){const event=plan.events[i];if(event.countIn){el('routine-status').textContent='Count in · '+(Math.floor(event.step/2)+1)+' / 4';return;}el('routine-phase').textContent={listen:'LISTEN · sing the phrase before playing',answer:'YOUR TURN · play over the chords',alone:'PLAY ALONE · keep your own pulse',together:'PLAY TOGETHER'}[event.phase];el('routine-status').textContent=`${titles[event.group.type]} · round ${event.round} · ${event.group.chord.name} · note ${event.step+1}/8`;document.querySelectorAll('#routine-display [data-event]').forEach(n=>n.classList.toggle('current',+n.dataset.event===event.step));document.querySelectorAll('#routine-display [data-pattern-events]').forEach(n=>n.classList.toggle('current',n.dataset.patternEvents.split(',').includes(String(event.step))));},onFinish(){root.PlayingCoach?.finish(true);root.stopRoutine();el('routine-status').textContent='Routine complete · How did it feel?';el('routine-reflection').hidden=false;}});
+root.stopRoutine=function(){root.PlayingCoach?.finish(false);token++;runner.stop();if(clickVoice){clickVoice.dispose();clickVoice=null;}if(voice){voice.dispose();voice=null;}if(el('routine-start')){el('routine-start').disabled=!plan?.events.length;el('routine-status').textContent='Ready';el('routine-settings').disabled=false;document.querySelectorAll('#routine-display .current').forEach(n=>n.classList.remove('current'));}};
+function drawGroup(group){
+ const basis=el('routine-basis').value==='chord'?group.chord.pc:plan.key,help=el('routine-help').value;
+ el('routine-exercise').textContent=`${titles[group.type]} · ${group.chord.name}`;
+ const goals={triads:'Goal: connect each triad with small finger movements; hear the notes that stay the same.',pentatonic:'Goal: leave space and finish each phrase on a chord tone.',scales:'Goal: keep the pulse through the rests and resolve to the opening chord tone.'};
+ el('routine-tip').textContent=goals[group.type];
+ const hidden=help==='chords'||(el('routine-mode').value==='ear'&&activePhase==='listen');
+ el('routine-display').innerHTML=`<p class="notation-help">Intervals from ${names[basis]} (${el('routine-basis').value==='chord'?'current chord':'key'}) · chord tones: ${hidden?'hidden for recall':group.chord.tones.map(n=>names[n]).join(' / ')} · one bar per chord</p>`+(hidden?'<p class="recall-prompt">Hear it, sing it, then find it. Use Reveal if you need a hint.</p>':`<div class="pattern-scroll">${PracticePatterns.board(group.model,basis)}</div>${PracticePatterns.tabs(group.model,basis,help==='intervals'?'intervals':'both')}`);
+ if(el('routine-phrasing').checked&&group.type!=='triads'){el('routine-display').insertAdjacentHTML('afterbegin','<p class="notation-help">Leave space on steps 4 and 7 (faded notes). Finish on the opening chord tone.</p>');el('routine-display').querySelectorAll('[data-event="3"],[data-event="6"]').forEach(n=>{n.style.opacity='.25';n.setAttribute('aria-label','Rest');});}
+}
+
+function prepare(){root.stopRoutine();activeGroup=null;const types=Object.keys(titles).filter(t=>el('routine-'+t).checked);const rounds=Math.max(1,Math.min(16,Math.floor(+el('routine-rounds').value)||1));el('routine-rounds').value=rounds;plan=build(+el('routine-key').value,el('routine-progression').value,types,rounds,{transition:el('routine-loop').value==='all'?undefined:+el('routine-loop').value,mode:el('routine-mode').value,countIn:true,phrasing:el('routine-phrasing').checked});activePhase=null;el('routine-reflection').hidden=true;el('routine-phase').textContent='Ready · listen, then make it your own';el('routine-summary').textContent=`${(el('routine-loop').value==='all'?plan.chords:[plan.chords[+el('routine-loop').value],plan.chords[(+el('routine-loop').value+1)%4]]).map(c=>c.name).join(' → ')} · ${types.length} exercises · ${rounds} rounds each · about ${Math.ceil(plan.events.length*30/(+el('routine-tempo').value)/60)} min`;el('routine-start').disabled=!types.length;el('routine-display').innerHTML='';el('routine-exercise').textContent='Select at least one exercise';el('routine-tip').textContent='';if(types.length)drawGroup(plan.events.find(e=>e.group).group);}
+document.addEventListener('DOMContentLoaded',()=>{
+ const panel=document.createElement('section');panel.className='panel routine-panel';panel.innerHTML=`<div class="panel-title">Advanced beginner · Guided routine</div><h2>Practice through a progression</h2><p class="notation-help">Start at 60 BPM. Listen to the model, answer over the chords, then keep the pulse on your own. Each round includes all selected passes.</p><fieldset id="routine-settings"><div class="pattern-controls"><label>Key<select class="retro-select" id="routine-key">${names.map((n,i)=>`<option value="${i}" ${i===0?'selected':''}>${n}</option>`).join('')}</select></label><label>Progression<select class="retro-select" id="routine-progression">${Object.entries(presets).map(([v,p])=>`<option value="${v}">${p.label}</option>`).join('')}</select></label><label>Rounds per exercise<input id="routine-rounds" type="number" min="1" max="16" value="4"></label></div><div class="routine-options">${Object.entries(titles).map(([v,t])=>`<label><input type="checkbox" id="routine-${v}" checked> ${t}</label>`).join('')}</div><div class="pattern-controls"><label>Learning mode<select class="retro-select" id="routine-mode" aria-label="Learning mode"><option value="response">Listen → answer → play alone</option><option value="together">Play together</option><option value="ear">Ear first · listen then answer</option></select></label><label>Practice section<select class="retro-select" id="routine-loop" aria-label="Practice section"><option value="all">Whole progression</option><option value="0">Chords 1 → 2</option><option value="1">Chords 2 → 3</option><option value="2">Chords 3 → 4</option><option value="3">Chords 4 → 1</option></select></label></div><label class="routine-options"><input id="routine-phrasing" type="checkbox" checked> Phrase with rests (pentatonic & scales: rest on steps 4 and 7)</label></fieldset><div class="pattern-controls teaching-controls"><label>Interval labels<select class="retro-select" id="routine-basis" aria-label="Interval labels"><option value="chord">Current chord tones</option><option value="key">Key degrees</option></select></label><label>Visual help<select class="retro-select" id="routine-help" aria-label="Visual help"><option value="full">Frets + intervals</option><option value="intervals">Intervals only</option><option value="chords">Chord names only</option></select></label><button class="bak-btn small red" id="routine-reveal">Reveal notes</button></div><label class="routine-tempo-label">Tempo <output id="routine-bpm">60 BPM</output><input id="routine-tempo" aria-label="Routine tempo" type="range" min="40" max="140" step="5" value="60"></label><p id="routine-summary" class="notation-help"></p><div class="pattern-transport"><button class="bak-btn" id="routine-start">Start routine</button><button class="bak-btn red" id="routine-stop">Stop routine</button><span id="routine-status" role="status">Ready</span></div><div id="routine-phase" class="learning-phase" aria-live="polite"></div><h3 id="routine-exercise"></h3><p id="routine-tip" class="notation-help"></p><div id="routine-display"></div><section id="routine-reflection" hidden><h3>How did that feel?</h3><p class="notation-help">Your assessment, not an automatic score. Choose what you want to work on next.</p><div class="routine-options"><button class="bak-btn" data-rating="comfortable">Comfortable · +5 BPM</button><button class="bak-btn red" data-rating="uneven">Uneven · repeat tempo</button><button class="bak-btn red" data-rating="lost">Lost my place · simplify</button></div></section><p id="routine-review" class="notation-help"></p><button class="bak-btn small red" id="routine-resume" hidden>Revisit saved focus</button><button class="bak-btn small red" id="routine-clear" hidden>Clear saved focus</button>`;
+ el('prog-screen').prepend(panel);
+ const mic=document.createElement('section');mic.className='mic-panel';mic.innerHTML='<h3>Listen & feedback</h3><p class="notation-help">Use headphones so the microphone hears your guitar, not the demonstration. Play single notes; strummed chords cannot be scored reliably. Audio is analyzed on this device and is not saved or uploaded.</p><button class="bak-btn" id="mic-enable">Enable microphone</button><meter id="mic-level" min="0" max="1" value="0" aria-label="Microphone input level"></meter><p id="mic-status" role="status">Microphone off</p><p id="mic-result" class="notation-help">A fair score requires at least four clear notes and 60% detection coverage. Pitch tolerance: half a semitone. Low coverage is not treated as failure.</p>';
+ el('routine-summary').before(mic);
+ el('mic-enable').onclick=async()=>{el('mic-enable').disabled=true;try{await PlayingCoach.enable();}catch(error){el('mic-status').textContent=error.name==='NotAllowedError'?'Microphone permission was not granted. Enable it in browser settings to try again.':error.message;}finally{el('mic-enable').disabled=false;}};
+ panel.querySelectorAll('fieldset input,fieldset select').forEach(n=>n.onchange=prepare);
+ el('routine-tempo').oninput=()=>{el('routine-bpm').textContent=el('routine-tempo').value+' BPM';runner.setSpeed(+el('routine-tempo').value/70*100);if(!runner.running)prepare();};
+ el('routine-stop').onclick=()=>{root.stopRoutine();el('routine-reflection').hidden=false;};
+ ['routine-help','routine-basis'].forEach(id=>el(id).onchange=()=>{const group=activeGroup||plan.events.find(e=>e.group)?.group;if(group)drawGroup(group);});
+ el('routine-reveal').onclick=()=>{el('routine-help').value='full';activePhase='answer';const group=activeGroup||plan.events.find(e=>e.group)?.group;if(group)drawGroup(group);};
+ const fields=['routine-key','routine-progression','routine-rounds','routine-loop','routine-mode','routine-tempo'];
+ let saved;try{saved=JSON.parse(localStorage.getItem('gtab-learning-focus'));}catch{}
+ function showSaved(){if(!saved)return;el('routine-review').textContent=`Last reflection: ${saved.rating} · ${saved.chords} at ${saved.tempo} BPM. Revisit this before adding new material.`;el('routine-resume').hidden=false;el('routine-clear').hidden=false;}
+ panel.querySelectorAll('[data-rating]').forEach(button=>button.onclick=()=>{
+  const rating=button.dataset.rating;saved={rating,chords:plan.chords.map(c=>c.name).join(' → '),tempo:+el('routine-tempo').value,fields:Object.fromEntries(fields.map(id=>[id,el(id).value])),types:Object.keys(titles).filter(t=>el('routine-'+t).checked)};
+  if(rating==='comfortable')saved.fields['routine-tempo']=String(Math.min(140,saved.tempo+5));
+  if(rating==='lost'){saved.fields['routine-loop']=el('routine-loop').value==='all'?'0':el('routine-loop').value;saved.fields['routine-tempo']=String(Math.max(40,saved.tempo-10));saved.fields['routine-mode']='response';saved.types=[saved.types[0]||'triads'];}
+  try{localStorage.setItem('gtab-learning-focus',JSON.stringify(saved));}catch{}
+  el('routine-reflection').hidden=true;showSaved();el('routine-review').textContent+=' Saved. Use Revisit to load your next practice settings.';
+ });
+ el('routine-resume').onclick=()=>{if(!saved)return;fields.forEach(id=>{if(saved.fields[id]!==undefined)el(id).value=saved.fields[id];});Object.keys(titles).forEach(t=>el('routine-'+t).checked=saved.types.includes(t));el('routine-bpm').textContent=el('routine-tempo').value+' BPM';prepare();};
+ el('routine-clear').onclick=()=>{saved=null;try{localStorage.removeItem('gtab-learning-focus');}catch{}el('routine-review').textContent='';el('routine-resume').hidden=true;el('routine-clear').hidden=true;};
+ showSaved();
+ el('routine-start').onclick=async()=>{stopLicks();stopProgression();audioTrack.pause();stopMetronome();const request=++token;el('routine-start').disabled=true;el('routine-settings').disabled=true;el('routine-status').textContent='Loading guitar…';try{await ensureTone();if(request!==token)return;voice=StudioSound.voice('guitar');clickVoice=new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:.001,decay:.03,sustain:0,release:.01}}).toDestination();el('routine-reflection').hidden=true;activeGroup=null;activePhase=null;root.PlayingCoach?.begin();runner.start(plan.events,{bpm:70,speed:+el('routine-tempo').value/70*100});}catch(error){root.stopRoutine();el('routine-status').textContent=error.message;}};
+ prepare();
+});
+})(typeof window==='undefined'?globalThis:window);
