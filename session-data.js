@@ -1,0 +1,15 @@
+/* Versioned, validated backups and like-for-like practice comparisons. */
+(function(root){
+const fields=['level','key','progression','shape','mode','section','rounds','types','tempo','help','basis','phrasing','challenge','calibration','latency'];
+function signature(settings){return JSON.stringify(fields.map(k=>[k,settings?.[k]??null]));}
+function validateSession(s){
+ if(!s||typeof s!=='object'||!Number.isFinite(s.at)||s.at<0||s.at>8640000000000000||!Number.isFinite(s.seconds)||s.seconds<0||s.seconds>86400)throw Error('Invalid session date or duration.');
+ for(const k of ['score','coverage'])if(s[k]!=null&&(!Number.isFinite(s[k])||s[k]<0||s[k]>100))throw Error('Invalid score.');
+ const settings={};for(const k of fields){const v=s.settings?.[k];if(v!==undefined){if(!['string','number','boolean'].includes(typeof v)||String(v).length>300||(typeof v==='number'&&!Number.isFinite(v)))throw Error('Invalid session settings.');settings[k]=v;}}
+ return {id:typeof s.id==='string'?s.id.slice(0,100):`${s.at}-${s.seconds}-${String(s.exercise||'').slice(0,80)}`,at:s.at,seconds:s.seconds,completed:s.completed===true,score:s.score??null,coverage:s.coverage??null,exercise:String(s.exercise||'Routine').slice(0,150),level:Number.isInteger(s.level)&&s.level>=1&&s.level<=7?s.level:undefined,settings,comparable:s.comparable===true&&fields.every(k=>settings[k]!==undefined),assessmentVersion:s.assessmentVersion===2?2:1};
+}
+function parseBackup(text){if(text.length>5000000)throw Error('Backup exceeds 5 MB.');const data=JSON.parse(text);if(data.format!=='gtab-practice'||data.version!==1||!Array.isArray(data.sessions)||data.sessions.length>20000)throw Error('This is not a supported GTab backup.');return data.sessions.map(validateSession);}
+function merge(current,incoming){const byId=new Map(current.map(s=>[s.id||`${s.at}-${s.seconds}-${String(s.exercise||'').slice(0,80)}`,s]));for(const s of incoming)if(!byId.has(s.id))byId.set(s.id,s);return [...byId.values()].sort((a,b)=>a.at-b.at);}
+function comparison(history,session){if(!session?.completed||!session.comparable||session.assessmentVersion!==2||session.score==null)return null;const matches=history.filter(s=>s!==session&&s.at<session.at&&s.completed&&s.comparable&&s.assessmentVersion===2&&s.score!=null&&signature(s.settings)===signature(session.settings)).sort((a,b)=>b.at-a.at);return matches.length?{previous:matches[0].score,change:session.score-matches[0].score}:null;}
+root.SessionData={signature,validateSession,parseBackup,merge,comparison};
+})(typeof window==='undefined'?globalThis:window);

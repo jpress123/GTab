@@ -1,0 +1,21 @@
+/* A performance view with explicit pause/recovery and a best-effort wake lock. */
+(function(){let wake=null,wakeGeneration=0,active=false;
+const el=id=>document.getElementById(id);
+async function release(){wakeGeneration++;const lock=wake;wake=null;if(lock)try{await lock.release();}catch{}if(el('wake-status'))el('wake-status').textContent='';}
+async function keepAwake(){const generation=++wakeGeneration;if(!active||!el('keep-awake').checked)return;if(!navigator.wakeLock){el('wake-status').textContent='Screen-awake control unavailable in this browser';return;}try{const lock=await navigator.wakeLock.request('screen');if(generation!==wakeGeneration||!active){await lock.release();return;}wake=lock;el('wake-status').textContent='Screen stays awake';lock.addEventListener('release',()=>{if(wake===lock){wake=null;el('wake-status').textContent='Screen-awake protection released';}});}catch{el('wake-status').textContent='Could not keep screen awake; check battery-saving settings';}}
+function setFocus(on){document.querySelector('.routine-panel')?.classList.toggle('playing-focus',on);if(el('focus-toggle'))el('focus-toggle').textContent=on?'Show settings':'Focus view';}
+window.PracticeFocus={
+ start(){active=true;el('focus-bar').hidden=false;el('focus-pause').textContent='Pause';setFocus(el('focus-auto').checked);release().then(keepAwake);el('focus-chords').scrollIntoView({block:'start'});},
+ end(){active=false;release();setFocus(false);if(el('focus-bar'))el('focus-bar').hidden=true;},
+ paused(){active=false;release();el('focus-pause').textContent='Resume';el('focus-beat').textContent='Paused';},
+ step(event,next){if(!event.countIn)document.querySelectorAll('#routine-display .interval-tab [data-event="'+event.step+'"]').forEach(n=>{const passage=n.closest('.tab-passage'),x=n.getBoundingClientRect().left-passage.getBoundingClientRect().left;if(x<30||x>passage.clientWidth-60)passage.scrollLeft+=x-50;});el('focus-current').textContent=event.countIn?'Get ready':event.group.chord.name;el('focus-next').textContent=event.countIn?'Four-beat count-in':(next?'Next: '+next.name:'Last chord');el('focus-beat').textContent='Beat '+(Math.floor(event.step/2)+1)+(event.step%2?' &':'');el('focus-challenge').textContent=event.challenge?RoutineControl.challenge:'';}
+};
+document.addEventListener('DOMContentLoaded',()=>{
+ const panel=document.querySelector('.routine-panel');const options=document.createElement('div');options.className='focus-options';options.innerHTML='<label><input id="focus-auto" type="checkbox" checked> Focus view when playing</label><label><input id="keep-awake" type="checkbox" checked> Keep screen awake during practice</label>';el('routine-summary').before(options);
+ const chords=document.createElement('div');chords.id='focus-chords';chords.innerHTML='<span id="focus-current">Ready</span><span id="focus-next">Your progression</span><span id="focus-beat"></span><p id="focus-challenge"></p>';el('routine-phase').before(chords);
+ const toolbar=document.createElement('div');toolbar.id='focus-bar';toolbar.hidden=true;toolbar.innerHTML='<button id="focus-pause" class="bak-btn">Pause</button><button id="focus-repeat" class="bak-btn">Repeat transition</button><button id="focus-stop" class="bak-btn red">Finish</button><button id="focus-toggle" class="bak-btn red">Show settings</button>';panel.append(toolbar);const wakeStatus=document.createElement('span');wakeStatus.id='wake-status';wakeStatus.setAttribute('role','status');toolbar.append(wakeStatus);
+ el('focus-pause').onclick=async()=>{try{if(RoutineControl.paused)await RoutineControl.resume();else RoutineControl.pause();}catch(error){el('routine-status').textContent=error.message;}};
+ el('focus-repeat').onclick=()=>RoutineControl.repeat();el('focus-stop').onclick=()=>el('routine-stop').click();el('focus-toggle').onclick=()=>setFocus(!panel.classList.contains('playing-focus'));
+ el('keep-awake').onchange=()=>{release().then(()=>{if(active)keepAwake();});};
+});
+})();

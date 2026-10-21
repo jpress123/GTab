@@ -100,3 +100,17 @@ The current development server binds only to this computer's localhost. iPad mic
 Home provides a persistent Level 1–7 selector. Applying a level sets a musical progression, key, tempo, exercise mix, pentatonic position and listening mode; it does not certify mastery. Levels 2–5 offer all five pentatonic positions. Level 6 adds ii7–V7–Imaj7 and transposable CAGED triad maps. Level 7 adds the 12-bar dominant blues form, chord-relative Mixolydian phrases and dominant seventh/ninth voicing maps. Technique assignments stay attached to the progression; expression and barre quality remain self-review tasks.
 
 The practice calendar begins October 22, 2026, with dated seven-day pages and previous/next navigation. The full saved session log is displayed, without the former 100-session cap. Storage remains local to this browser; clearing browser data removes it. Session entries record the selected level, not a claim that the player mastered it.
+
+### Focus view, input check and comparable takes
+
+Start routine enters the optional focus view: current/next chord, beat, model notation and persistent Pause / Repeat transition / Finish controls. Pause silences the model and resumes from the current note; paused time is excluded from session duration. Changing tabs pauses the routine and releases the microphone. Re-enable and check the microphone after an interruption to restore scoring. The optional screen wake lock is best-effort; low battery, unsupported browsers or OS policies can release it.
+
+Before scoring, enable the microphone and use **Input check & timing adjustment**. Stay quiet for 2.5 seconds, then pluck the selected open string for 4 seconds. The check measures background level, pitch consistency and clipping; it does not grade the player or measure latency. Delay compensation is manual, 0–250 ms. Keep wired headphones on to avoid the model leaking into the microphone. Expected/detected note details and a targeted transition retry appear after a take. Physical iPad and live-instrument validation are still required; generated tones do not prove real-world accuracy.
+
+Creative challenge passes add a musical constraint over the selected progression and are not scored against the model. New session records include key, progression, tempo, position, learning mode, assistance, input-check state and exercise mix. Comparisons require completed takes with identical settings and assessment version. In-session changes exclude a take from comparison.
+
+**Backup & history tools** on Home exports a versioned JSON file. Restore validates it and merges by session ID. Clear history has an Undo option until the page is reloaded. Backups are manual device transfer, not cloud synchronization; a browser storage warning prompts export if local saving fails.
+
+### HTTPS deployment
+
+`scripts/build_site.py` packages only the public frontend and licensed instrument samples into `site-dist/`. The Pages workflow runs JavaScript tests, builds, then publishes that directory. In GitHub repository **Settings → Pages → Build and deployment**, select **GitHub Actions** as the source, then run **Publish GTab practice site** if a prior deployment failed. The expected Pages address is `https://jpress123.github.io/GTab/` once deployment succeeds. Python stem separation remains local and is disabled in the GitHub Pages frontend. GitHub sign-in/settings access is required to enable Pages; a successful source push alone does not establish hosting.

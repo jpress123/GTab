@@ -854,7 +854,7 @@ async function resetSeparation(){
   const id=separationId;separationId=null;
   if(stemMixer)stemMixer.dispose();stemMixer=null;setStemMode(false);
   el('download-stems').hidden=true;el('download-stems').removeAttribute('href');el('original-mix').hidden=true;el('cancel-separation').hidden=true;
-  el('separate-btn').disabled=!uploadedFile;
+  el('separate-btn').disabled=!uploadedFile||location.hostname.endsWith('github.io');
   if(id)try{await fetch('/api/jobs/'+id,{method:'DELETE',headers:{'X-GTab-Request':'1'}});}catch{}
 }
 async function separateTrack(){
@@ -895,7 +895,7 @@ async function separateTrack(){
       await new Promise(resolve=>setTimeout(resolve,1500));
     }
   }catch(error){if(error.name!=='AbortError')status(error.message);}
-  finally{if(version===separationVersion){el('cancel-separation').hidden=true;el('separate-btn').disabled=!uploadedFile;}}
+  finally{if(version===separationVersion){el('cancel-separation').hidden=true;el('separate-btn').disabled=!uploadedFile||location.hostname.endsWith('github.io');}}
 }
 audioTrack.addEventListener('play',()=>{if(useStems)stemMixer.start(audioTrack.currentTime,audioTrack.playbackRate).catch(error=>showToast(error.message));});
 audioTrack.addEventListener('pause',()=>{if(stemMixer)stemMixer.stop();});
@@ -907,7 +907,7 @@ function runProcessing(sampleName){
   audioTrack.pause();resetSeparation(); S.playing=false; S.playPos=0;el('stem-status').textContent='Separate an uploaded track to practice with individual instruments.';
   S.sample=sampleName;S.loopA=null;S.loopB=null;el('genre-sel').value=S.genre;
   if(sampleName!=='upload'){uploadedFile=null;audioTrack.removeAttribute('src');audioTrack.load();S.waveData=Array(400).fill(0);}
-  el('separate-btn').disabled=!uploadedFile;showScreen('practice-screen');el('nav-practice').disabled=false;el('nav-export').disabled=false;
+  el('separate-btn').disabled=!uploadedFile||location.hostname.endsWith('github.io');if(location.hostname.endsWith('github.io'))el('stem-status').textContent='Stem separation is available in the local desktop app. Guided practice and microphone feedback work here.';showScreen('practice-screen');el('nav-practice').disabled=false;el('nav-export').disabled=false;
   el('mode-badge').textContent=S.genre;
   renderTab();renderLicks();drawWaveform();
   el('tab-genre-label').textContent+=(sampleName==='upload'?' · Reference study (not a transcription)':' · Practice study');
@@ -997,9 +997,11 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 </script>
 <script src="practice-ui.js"></script>
+<script src="session-data.js"></script>
 <script src="performance.js"></script>
 <script src="levels.js"></script>
 <script src="routine.js"></script>
 <script src="dashboard.js"></script>
+<script src="practice-focus.js"></script>
 </body>
 </html>

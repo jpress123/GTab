@@ -102,7 +102,9 @@
         this.tick(generation);
       },duration);
     }
-    stop(){this.running=false;this.generation++;if(this.timer!==undefined)this.clearTimer(this.timer);}
+    pause(){if(!this.running)return;this.running=false;this.paused=true;this.generation++;this.clearTimer(this.timer);}
+    resume(){if(!this.paused)return;this.paused=false;this.running=true;this.tick(++this.generation);}
+    stop(){this.paused=false;this.running=false;this.generation++;if(this.timer!==undefined)this.clearTimer(this.timer);}
   }
   root.PracticePatterns={parse,interval,noteName,sequence,board,tabs,Runner,INTERVALS,COLORS};
 })(typeof window==='undefined'?globalThis:window);
