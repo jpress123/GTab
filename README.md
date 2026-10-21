@@ -94,3 +94,9 @@ Enable the microphone from Guided routine, use headphones, and play single notes
 Home now tracks up to 100 local sessions, time, days practiced and measured pitch scores separately from self-assessments. No history is synchronized between devices. Tablet layouts use touch-sized controls, safe-area spacing and collapsible advanced tools.
 
 The current development server binds only to this computer's localhost. iPad microphone access requires hosting the frontend at a trusted HTTPS URL (or an appropriately configured HTTPS local server); opening a plain HTTP LAN address does not enable microphone capture. Local stem-separation endpoints require their own secure deployment configuration and are not exposed to the network by these changes.
+
+### Progression-based levels and dated calendar
+
+Home provides a persistent Level 1–7 selector. Applying a level sets a musical progression, key, tempo, exercise mix, pentatonic position and listening mode; it does not certify mastery. Levels 2–5 offer all five pentatonic positions. Level 6 adds ii7–V7–Imaj7 and transposable CAGED triad maps. Level 7 adds the 12-bar dominant blues form, chord-relative Mixolydian phrases and dominant seventh/ninth voicing maps. Technique assignments stay attached to the progression; expression and barre quality remain self-review tasks.
+
+The practice calendar begins October 22, 2026, with dated seven-day pages and previous/next navigation. The full saved session log is displayed, without the former 100-session cap. Storage remains local to this browser; clearing browser data removes it. Session entries record the selected level, not a claim that the player mastered it.
