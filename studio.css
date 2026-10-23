@@ -58,3 +58,8 @@ html,body{overscroll-behavior-y:none}#app{height:100dvh;padding-bottom:env(safe-
 .weekly-habits audio {display:block;width:100%;max-width:540px;margin:8px 0}
 .weekly-habits a {display:inline-block;min-height:44px;color:#c5ef85;padding:10px 0}
 .weekly-habits button {min-height:44px}
+
+.week-schedule {display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:0;list-style:none;margin:20px 0}
+.week-schedule li {display:flex;flex-direction:column;gap:7px;padding:12px 6px;border:1px solid #46513b;border-radius:10px;text-align:center;font-size:12px}
+.week-schedule small {font-size:10px;color:#bac7ac}.week-schedule .active {border-color:#c5ef85;background:#293820}
+@media(max-width:650px){.week-schedule{grid-template-columns:repeat(4,minmax(0,1fr))}}
