@@ -91,21 +91,23 @@ After completing or stopping a routine, choose a self-assessment. Comfortable pr
 
 Enable the microphone from Guided routine, use headphones, and play single notes during answer/play-alone passes. Audio is analyzed locally and never saved or uploaded. A pitch-match estimate is shown only with at least four detected notes and 60% coverage; it is not a rhythm, chord, or expression score. Synthetic tests cover guitar-range pitches, harmonics, silence, octave errors and sparse evidence. Real instrument/room and physical iPad validation remain necessary before treating this as a calibrated assessment.
 
-Home now tracks up to 100 local sessions, time, days practiced and measured pitch scores separately from self-assessments. No history is synchronized between devices. Tablet layouts use touch-sized controls, safe-area spacing and collapsible advanced tools.
+Home keeps local practice history and separates measured pitch scores from self-assessments. No history is synchronized between devices. Tablet layouts use touch-sized controls, safe-area spacing and collapsible advanced tools.
 
 The current development server binds only to this computer's localhost. iPad microphone access requires hosting the frontend at a trusted HTTPS URL (or an appropriately configured HTTPS local server); opening a plain HTTP LAN address does not enable microphone capture. Local stem-separation endpoints require their own secure deployment configuration and are not exposed to the network by these changes.
 
-### Progression-based levels and dated calendar
+### Weekly bridge path
 
-Home now offers three intermediate improvisation vocabularies: major/minor triads, major/minor pentatonic, and major/minor scales. Existing CAGED knowledge is assumed. Five progression families (blues/rock, Andalusian, neoclassical, jazz, other) are available at every level. CAGED area selection changes generated triad positions and scale/pentatonic fret windows. Minor-key dominant chords use a major third; scale lines use harmonic minor over that dominant. Old history retains its previous-curriculum label.
+Home has one dated weekly mission, a four-level path, XP, and morning/evening launch buttons. The levels are triads, seventh arpeggios, pentatonic, and scales. Each level contains six progressively varied weekly missions: minor rock, major I–IV–V, 12-bar blues, Andalusian, neoclassical, and major jazz ii–V–I. The five CAGED areas recur across that path. Free practice remains available separately.
 
-### Morning and evening sessions
+The musical goal is to play *into* the next chord: a nearby vocabulary note approaches the next third (or alternating third/seventh at arpeggio level), the last upbeat anticipates that destination, and the next bar begins on exactly the same pitch. The target can intentionally fall outside the current chord or pentatonic collection. The visual cue shows the upcoming chord, target pitch, approach and landing. Rests on steps 2 and 6 create breathing space. A selected two-chord loop retargets its final phrase back to its first chord.
 
-Two dashboard cards launch 30-minute sessions. Morning starts with Am–F–C–G in the E-form area at 75 BPM, then focuses on singing, chord-tone destinations, motif variation, connected phrases and reflection. Evening reuses the latest morning level, progression, tempo and area; only backing chords play, and improvisation is never scored against model notes. Five timed blocks total 30 minutes. Playback loops until the session ends. Pause, navigation away and backgrounding exclude inactive time; saved partial sessions resume after reload. Finish logs one session (not one per playback loop), with an optional reflection. Morning reflections appear as an evening intention. No audio recording is implied or stored by this reflection feature.
+### Morning, evening and rewards
 
-Library PDFs and recordings remain local source material and are not included in the public build. The generated exercises and coaching prompts are original app content.
+Both 30-minute sessions use the same weekly level, progression, position and tempo. The first mission is Am–F–C–G, E area, 65 BPM. Morning develops singing, anticipation and connected motifs; evening supplies backing only. Neither free improvisation nor a self-assessment is presented as a microphone grade.
 
-The practice calendar begins October 22, 2026, with dated seven-day pages and previous/next navigation. The full saved session log is displayed, without the former 100-session cap. Storage remains local to this browser; clearing browser data removes it. Session entries record the selected level, not a claim that the player mastered it.
+Each full session earns 100 XP. A weekly bridge badge requires three full sessions including both morning and evening, then an explicit self-check confirming three consecutive loops with sung destinations, anticipations/beat-one landings, and motif/space. The badge earns 200 XP. It unlocks the next mission, which starts no earlier than the following week. Six weekly badges lead to the next vocabulary level. Duplicate session IDs do not earn duplicate XP. Partial sessions remain in history without completion rewards.
+
+Pauses, navigation away and backgrounding exclude inactive time. Sessions resume after reload, and Finish records one session rather than each loop. Rewards and badge evidence travel in history backups. The active week's local schedule is stored separately. Old history is retained but does not retroactively award new badges. Library PDFs and recordings remain local and are not published.
 
 ### Focus view, input check and comparable takes
 
@@ -115,7 +117,7 @@ Before scoring, enable the microphone and use **Input check & timing adjustment*
 
 Creative challenge passes add a musical constraint over the selected progression and are not scored against the model. New session records include key, progression, tempo, position, learning mode, assistance, input-check state and exercise mix. Comparisons require completed takes with identical settings and assessment version. In-session changes exclude a take from comparison.
 
-**Backup & history tools** on Home exports a versioned JSON file. Restore validates it and merges by session ID. Clear history has an Undo option until the page is reloaded. Backups are manual device transfer, not cloud synchronization; a browser storage warning prompts export if local saving fails.
+**Backup & restore** on Home exports a versioned JSON file. Restore validates it and merges by session ID. Clear history has an Undo option until the page is reloaded. Backups are manual device transfer, not cloud synchronization; a browser storage warning prompts export if local saving fails.
 
 ### HTTPS deployment
 
