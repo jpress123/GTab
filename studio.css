@@ -69,3 +69,8 @@ html,body{overscroll-behavior-y:none}#app{height:100dvh;padding-bottom:env(safe-
 .week-schedule button:focus-visible {outline:3px solid #ffcf40}
 .day-preview {padding:18px;border:1px solid #62774c;border-radius:14px;margin:16px 0;background:#202b19}
 .day-preview h3 {margin:0 0 10px}.day-preview button {min-height:44px;margin-top:12px}.day-preview .chord-road {font-size:20px;color:#c5ef85}
+
+.preview-controls {display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;align-items:end}
+.preview-controls label {display:flex;flex-direction:column;gap:8px;font-size:13px}
+.preview-controls input {min-height:44px;accent-color:#c5ef85}
+.preview-controls select {min-height:44px;background:#172010;color:#eef4e6;border:1px solid #62774c;border-radius:8px;padding:8px;font:inherit}
