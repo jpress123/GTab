@@ -52,3 +52,9 @@ html,body{overscroll-behavior-y:none}#app{height:100dvh;padding-bottom:env(safe-
 .demo-neck .interval-neck {width:100%;height:auto;max-width:720px}
 .demo-beats span {color:#20261b}
 .demo-beats .current {color:white}
+
+.weekly-habits {margin-top:12px;border-top:1px solid #48543b;padding-top:12px}
+.weekly-habits summary {min-height:44px;cursor:pointer;font-weight:bold}
+.weekly-habits audio {display:block;width:100%;max-width:540px;margin:8px 0}
+.weekly-habits a {display:inline-block;min-height:44px;color:#c5ef85;padding:10px 0}
+.weekly-habits button {min-height:44px}

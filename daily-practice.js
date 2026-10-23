@@ -10,15 +10,15 @@ const families={
 const phases={morning:[
  [5,'Sing the destination','Hear the next chord’s third. Sing it before you play.'],
  [8,'Approach → anticipate → land','Play a nearby note, then the target on the last upbeat. Land on it again on beat 1.'],
- [8,'One motif, new endings','Repeat one rhythm. Change the ending to meet the next chord.'],
+ [8,'One motif, new endings','Keep this week’s phrase. Sing it first, then change only its ending to meet the next chord.'],
  [6,'Leave a breath','Use silence before your approach. Keep the chord change in your head.'],
  [3,'Three connected loops','Sing → approach → land. Repeat three times without losing the pulse.']
 ],evening:[
  [5,'Hear tonight’s landing','Sing the morning’s destination before touching the strings.'],
- [8,'Ask → answer','Ask over this chord. Answer into the next one.'],
- [8,'Vary the approach','Same target, three routes: above, below, then a repeated note.'],
+ [8,'Ask → answer','Sing this week’s phrase, then play it. Ask over this chord; answer into the next one.'],
+ [8,'Vary the approach','Keep the same notes. Sing a new rhythm, then play it into the same target.'],
  [6,'Make it sing','Short phrase → breath → new destination. Keep your motif recognizable.'],
- [3,'Your bridge challenge','Three loops: hear ahead, land on beat 1, leave space. Self-check afterward.']
+ [3,'Your bridge challenge','Three loops: sing first, land on beat 1, leave space. At week’s end, save a 30-second take on Home.']
 ]};
 function validSettings(p){return p&&families[p.family]?.choices.some(c=>c[0]===p.preset)&&['C','A','G','E','D'].includes(p.caged)&&Number.isFinite(p.tempo)&&p.tempo>=40&&p.tempo<=140;}
 function stage(kind,seconds){let end=0;return phases[kind].map((p,i)=>{const start=end;end+=p[0]*60;return {index:i,start,end,title:p[1],prompt:p[2]};}).find(p=>seconds<p.end)||{index:4,start:1620,end:1800,title:'Complete',prompt:''};}
@@ -28,7 +28,7 @@ const $=id=>document.getElementById(id),storage='gtab-weekly-session-v2';let pre
 try{const p=JSON.parse(localStorage.getItem('gtab-daily-preferences'));if(p&&families[p.family]?.choices.some(c=>c[0]===p.preset)&&['C','A','G','E','D'].includes(p.caged))prefs={...prefs,...p,tempo:Math.max(40,Math.min(140,+p.tempo||75))};const s=JSON.parse(localStorage.getItem(storage));if(s&&['morning','evening'].includes(s.kind)&&Number.isFinite(s.seconds)&&s.seconds>=0&&s.seconds<1800&&s.settings&&families[s.settings.family]?.choices.some(c=>c[0]===s.settings.preset)&&['C','A','G','E','D'].includes(s.settings.caged)&&[1,2,3,4].includes(s.level))session={...s,running:false};}catch{}
 function save(){try{localStorage.setItem('gtab-daily-preferences',JSON.stringify(prefs));if(session)localStorage.setItem(storage,JSON.stringify(session));else localStorage.removeItem(storage);}catch{if($('daily-save-status'))$('daily-save-status').textContent='This browser could not save your session. Keep this page open.';}}
 function clock(){if(session?.running){const now=performance.now();session.seconds=Math.min(1800,session.seconds+(now-last)/1000);last=now;}return session?.seconds||0;}
-function mode(){return session.kind==='evening'||[0,4].includes(stage(session.kind,session.seconds).index)?'improv':'response';}
+function mode(){return session.kind==='evening'||[0,4].includes(stage(session.kind,session.seconds).index)?'improv':'sing-response';}
 function configure(){const p=session.settings,choice=families[p.family].choices.find(c=>c[0]===p.preset);PracticeLevels.set(session.level);RoutineControl.configure({'routine-key':choice[2],'routine-progression':p.preset,'routine-caged':p.caged,'routine-tempo':p.tempo,'routine-rounds':4,'routine-mode':mode(),'routine-challenge':'model','routine-help':session.kind==='evening'?'chords':'full','routine-phrasing':true});}
 function draw(){const host=$('daily-session');if(!host)return;host.hidden=!session;if(!session)return;const p=stage(session.kind,session.seconds),remaining=Math.max(0,Math.ceil(1800-session.seconds));
  $('daily-session-title').textContent=(session.kind==='morning'?'Morning · focused learning':'Evening · improvisation')+' · '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0')+' left';
