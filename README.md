@@ -97,7 +97,13 @@ The current development server binds only to this computer's localhost. iPad mic
 
 ### Progression-based levels and dated calendar
 
-Home provides a persistent Level 1–7 selector. Applying a level sets a musical progression, key, tempo, exercise mix, pentatonic position and listening mode; it does not certify mastery. Levels 2–5 offer all five pentatonic positions. Level 6 adds ii7–V7–Imaj7 and transposable CAGED triad maps. Level 7 adds the 12-bar dominant blues form, chord-relative Mixolydian phrases and dominant seventh/ninth voicing maps. Technique assignments stay attached to the progression; expression and barre quality remain self-review tasks.
+Home now offers three intermediate improvisation vocabularies: major/minor triads, major/minor pentatonic, and major/minor scales. Existing CAGED knowledge is assumed. Five progression families (blues/rock, Andalusian, neoclassical, jazz, other) are available at every level. CAGED area selection changes generated triad positions and scale/pentatonic fret windows. Minor-key dominant chords use a major third; scale lines use harmonic minor over that dominant. Old history retains its previous-curriculum label.
+
+### Morning and evening sessions
+
+Two dashboard cards launch 30-minute sessions. Morning starts with Am–F–C–G in the E-form area at 75 BPM, then focuses on singing, chord-tone destinations, motif variation, connected phrases and reflection. Evening reuses the latest morning level, progression, tempo and area; only backing chords play, and improvisation is never scored against model notes. Five timed blocks total 30 minutes. Playback loops until the session ends. Pause, navigation away and backgrounding exclude inactive time; saved partial sessions resume after reload. Finish logs one session (not one per playback loop), with an optional reflection. Morning reflections appear as an evening intention. No audio recording is implied or stored by this reflection feature.
+
+Library PDFs and recordings remain local source material and are not included in the public build. The generated exercises and coaching prompts are original app content.
 
 The practice calendar begins October 22, 2026, with dated seven-day pages and previous/next navigation. The full saved session log is displayed, without the former 100-session cap. Storage remains local to this browser; clearing browser data removes it. Session entries record the selected level, not a claim that the player mastered it.
 
@@ -113,4 +119,4 @@ Creative challenge passes add a musical constraint over the selected progression
 
 ### HTTPS deployment
 
-`scripts/build_site.py` packages only the public frontend and licensed instrument samples into `site-dist/`. The Pages workflow runs JavaScript tests, builds, then publishes that directory. In GitHub repository **Settings → Pages → Build and deployment**, select **GitHub Actions** as the source, then run **Publish GTab practice site** if a prior deployment failed. The expected Pages address is `https://jpress123.github.io/GTab/` once deployment succeeds. Python stem separation remains local and is disabled in the GitHub Pages frontend. GitHub sign-in/settings access is required to enable Pages; a successful source push alone does not establish hosting.
+`scripts/build_site.py` packages only the public frontend and licensed instrument samples into `site-dist/`. The Pages workflow runs JavaScript tests, builds, then publishes that directory. In GitHub repository **Settings → Pages → Build and deployment**, select **GitHub Actions** as the source, then run **Publish GTab practice site** if a prior deployment failed. The deployed Pages address is `https://www.josephpress.com/GTab/`. Python stem separation remains local and is disabled in the GitHub Pages frontend. GitHub sign-in/settings access is required to enable Pages; a successful source push alone does not establish hosting.

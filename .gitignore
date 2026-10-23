@@ -8,3 +8,6 @@ __pycache__/
 preview.png
 horizontal-diagrams.png
 site-dist/
+
+# Personal lesson library; not part of the published app
+Library/

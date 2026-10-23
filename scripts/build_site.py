@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'site-dist'
-FILES = ['index.html','studio.css','audio-engine.js','stem-client.js','guitar-notation.js','practice-patterns.js','practice-ui.js','performance.js','levels.js','routine.js','dashboard.js','session-data.js','practice-focus.js']
+FILES = ['index.html','studio.css','audio-engine.js','stem-client.js','guitar-notation.js','practice-patterns.js','practice-ui.js','performance.js','levels.js','routine.js','dashboard.js','session-data.js','practice-focus.js','daily-practice.js']
 def build():
     if OUT.exists():
         shutil.rmtree(OUT)
