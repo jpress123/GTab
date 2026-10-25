@@ -22,8 +22,8 @@ const phases={morning:[
 ]};
 function validSettings(p){return p&&families[p.family]?.choices.some(c=>c[0]===p.preset)&&['C','A','G','E','D'].includes(p.caged)&&Number.isFinite(p.tempo)&&p.tempo>=40&&p.tempo<=140;}
 function schedule(date=new Date()){
- const first=new Date(2026,9,24),d=date<first?first:date,day=d.getDay();
- const level=day===6?1:day===0?2:day<=2?3:4;
+ const first=new Date(2026,9,25),d=date<first?first:date,day=d.getDay();
+ const level=day===0?1:day<=2?2:day<=4?3:4;
  return {day,level,type:['triads','arpeggios','pentatonic','scales'][level-1],label:['Triads across the fretboard','Seventh arpeggios','Pentatonics','Scales'][level-1],targetSeconds:day===6?3600:1800};
 }
 function stage(kind,seconds,targetSeconds=1800){seconds/=targetSeconds/1800;let end=0;return phases[kind].map((p,i)=>{const start=end;end+=p[0]*60;return {index:i,start,end,title:p[1],prompt:p[2]};}).find(p=>seconds<p.end)||{index:4,start:1620,end:1800,title:'Complete',prompt:''};}
@@ -45,7 +45,7 @@ function finish(){if(!session)return;clock();session.running=false;root.stopRout
 function start(kind){if(session&&session.kind!==kind){$('daily-home-status').textContent='Finish your saved '+session.kind+' session before starting the other session.';return;}
  if(!session){const m=WeeklyPractice.current(),day=schedule();session={id:crypto.randomUUID(),kind,level:day.level,day:day.day,targetSeconds:day.targetSeconds,weekMission:m.index,settings:{family:m.family,preset:m.preset,caged:m.caged,tempo:m.tempo},seconds:0,running:false};}
 
- phaseIndex=stage(session.kind,session.seconds,session.targetSeconds).index;configure();$('nav-prog').click();draw();const previous=PracticeHistory.sessions.filter(s=>s.sessionKind==='morning'&&s.reflection).at(-1);$('daily-carry').textContent=kind==='evening'&&previous?'Morning intention: '+previous.reflection:'';save();$('routine-start').click();}
+ phaseIndex=stage(session.kind,session.seconds,session.targetSeconds).index;configure();if(root.PracticeWorkspace)root.PracticeWorkspace.showTimed();else $('nav-prog').click();draw();const previous=PracticeHistory.sessions.filter(s=>s.sessionKind==='morning'&&s.reflection).at(-1);$('daily-carry').textContent=kind==='evening'&&previous?'Morning intention: '+previous.reflection:'';save();$('routine-start').click();}
 root.DailyPractice={get active(){return !!session;},get elapsed(){return session?.seconds||0;},mount(host){const today=schedule();const node=document.createElement('section');node.className='daily-home';node.innerHTML=`<div class="daily-cards">${['morning','evening'].map(kind=>`<article><span class="session-symbol" aria-hidden="true">${kind==='morning'?'☀':'☾'}</span><h3>${kind==='morning'?'Morning':'Evening'} <small>${(session?.kind===kind?session.targetSeconds:today.targetSeconds)/60} min</small></h3><p>${session?.kind===kind?['Triads','Seventh arpeggios','Pentatonics','Scales'][session.level-1]:today.label} · ${kind==='morning'?'Sing → connect':'Connect → improvise'}</p><button class="bak-btn" id="daily-${kind}">${session?.kind===kind?'Resume':'Start'} ${kind}</button></article>`).join('')}</div><p id="daily-home-status" role="status"></p>`;host.append(node);
  for(const kind of ['morning','evening'])document.getElementById('daily-'+kind).onclick=()=>start(kind);
  },pauseClock(){if(!session)return;clock();session.running=false;save();draw();},resumeClock(){if(!session)return;last=performance.now();session.running=true;save();draw();},nextLoop(){if(!session)return false;if(session.seconds>=session.targetSeconds){finish();return true;}$('routine-start').click();return true;},finish};

@@ -3,7 +3,7 @@
 const el=id=>document.getElementById(id);
 async function release(){wakeGeneration++;const lock=wake;wake=null;if(lock)try{await lock.release();}catch{}if(el('wake-status'))el('wake-status').textContent='';}
 async function keepAwake(){const generation=++wakeGeneration;if(!active||!el('keep-awake').checked)return;if(!navigator.wakeLock){el('wake-status').textContent='Screen-awake control unavailable in this browser';return;}try{const lock=await navigator.wakeLock.request('screen');if(generation!==wakeGeneration||!active){await lock.release();return;}wake=lock;el('wake-status').textContent='Screen stays awake';lock.addEventListener('release',()=>{if(wake===lock){wake=null;el('wake-status').textContent='Screen-awake protection released';}});}catch{el('wake-status').textContent='Could not keep screen awake; check battery-saving settings';}}
-function setFocus(on){document.querySelector('.routine-panel')?.classList.toggle('playing-focus',on);if(el('focus-toggle'))el('focus-toggle').textContent=on?'Show settings':'Focus view';}
+function setFocus(on){document.querySelector('.routine-panel')?.classList.toggle('playing-focus',on);if(el('focus-toggle'))el('focus-toggle').textContent=document.getElementById('custom-lesson')?.contains(document.querySelector('.routine-panel'))?'Mixing Board':on?'Show settings':'Focus view';}
 window.PracticeFocus={
  start(){active=true;el('focus-bar').hidden=false;el('focus-pause').textContent='Pause';setFocus(el('focus-auto').checked);release().then(keepAwake);el(window.DailyPractice?.active?'daily-session':'focus-chords').scrollIntoView({block:'start'});},
  end(){active=false;release();setFocus(false);if(el('focus-bar'))el('focus-bar').hidden=true;},
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  const chords=document.createElement('div');chords.id='focus-chords';chords.innerHTML='<span id="focus-current">Ready</span><span id="focus-next">Your progression</span><span id="focus-beat"></span><p id="focus-challenge"></p>';el('routine-phase').before(chords);
  const toolbar=document.createElement('div');toolbar.id='focus-bar';toolbar.hidden=true;toolbar.innerHTML='<button id="focus-pause" class="bak-btn">Pause</button><button id="focus-repeat" class="bak-btn">Repeat transition</button><button id="focus-stop" class="bak-btn red">Finish</button><button id="focus-toggle" class="bak-btn red">Show settings</button>';panel.append(toolbar);const wakeStatus=document.createElement('span');wakeStatus.id='wake-status';wakeStatus.setAttribute('role','status');toolbar.append(wakeStatus);
  el('focus-pause').onclick=async()=>{try{if(RoutineControl.paused)await RoutineControl.resume();else RoutineControl.pause();}catch(error){el('routine-status').textContent=error.message;}};
- el('focus-repeat').onclick=()=>RoutineControl.repeat();el('focus-stop').onclick=()=>el('routine-stop').click();el('focus-toggle').onclick=()=>setFocus(!panel.classList.contains('playing-focus'));
+ el('focus-repeat').onclick=()=>RoutineControl.repeat();el('focus-stop').onclick=()=>el('routine-stop').click();el('focus-toggle').onclick=()=>{if(document.getElementById('custom-lesson')?.contains(panel))el('nav-prog').click();else setFocus(!panel.classList.contains('playing-focus'));};
  el('keep-awake').onchange=()=>{release().then(()=>{if(active)keepAwake();});};
 });
 })();

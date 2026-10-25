@@ -385,10 +385,10 @@ body::before {
 <div id="header">
   <div class="app-title">GTab</div>
   <div class="header-nav">
-    <button class="nav-btn active" data-screen="import-screen" id="nav-import">Import</button>
-    <button class="nav-btn" data-screen="practice-screen" id="nav-practice" disabled>Practice</button>
-    <button class="nav-btn" data-screen="prog-screen" id="nav-prog">Progressions</button>
-    <button class="nav-btn" data-screen="export-screen" id="nav-export" disabled>Export</button>
+    <button class="nav-btn" data-screen="import-screen" id="nav-import">Dashboard</button>
+    <button class="nav-btn active" data-screen="lesson-screen" id="nav-practice">Practice</button>
+    <button class="nav-btn" data-screen="prog-screen" id="nav-prog">Mixing Board</button>
+    <button class="nav-btn" data-screen="export-screen" id="nav-export">Library</button>
     <div class="mode-badge" id="mode-badge">Standard</div>
   </div>
 </div>
@@ -405,7 +405,8 @@ body::before {
   </div>
 </div>
 
-<div class="screen active" id="import-screen">
+<div class="screen active" id="lesson-screen"><div id="lesson-home"></div><button class="bak-btn small" id="return-guided" hidden>Back to the Am–F lesson</button><div id="custom-lesson" hidden></div></div>
+<div class="screen" id="import-screen">
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-xl);padding:var(--sp-xl);width:100%;">
     <div class="import-hero">
       <div class="eyebrow">YOUR DAILY GUITAR STUDIO</div><h1>Find your groove.</h1>
@@ -645,7 +646,7 @@ const LICK_DB={
 };
 
 const S={
-  screen:'import-screen',sample:null,genre:'standard',tempo:100,
+  screen:'lesson-screen',sample:null,genre:'standard',tempo:100,
   metronome:false,countIn:0,playing:false,playPos:0,
   loopA:null,loopB:null,
   stems:{guitar:.75,bass:.75,drums:.75,other:.75},
@@ -830,7 +831,7 @@ function renderProgLicks(){
 
 function el(id){return document.getElementById(id);}
 function showScreen(id){
-  if(S.screen!==id){stopLicks();window.PlayingCoach?.close();audioTrack.pause();S.playing=false;el('t-play').classList.remove('active');stopMetronome();if(S.screen==='prog-screen')stopProgression();}
+  if(S.screen!==id){window.AmbientLesson?.stop?.();document.querySelectorAll('audio').forEach(a=>a.pause());stopLicks();window.PlayingCoach?.close();audioTrack.pause();S.playing=false;el('t-play').classList.remove('active');stopMetronome();if(S.screen==='prog-screen')stopProgression();}
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   el(id).classList.add('active');S.screen=id;
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));
@@ -854,7 +855,7 @@ async function resetSeparation(){
   const id=separationId;separationId=null;
   if(stemMixer)stemMixer.dispose();stemMixer=null;setStemMode(false);
   el('download-stems').hidden=true;el('download-stems').removeAttribute('href');el('original-mix').hidden=true;el('cancel-separation').hidden=true;
-  el('separate-btn').disabled=!uploadedFile||location.hostname.endsWith('github.io');
+  el('separate-btn').disabled=!uploadedFile||!['localhost','127.0.0.1','[::1]'].includes(location.hostname);
   if(id)try{await fetch('/api/jobs/'+id,{method:'DELETE',headers:{'X-GTab-Request':'1'}});}catch{}
 }
 async function separateTrack(){
@@ -895,7 +896,7 @@ async function separateTrack(){
       await new Promise(resolve=>setTimeout(resolve,1500));
     }
   }catch(error){if(error.name!=='AbortError')status(error.message);}
-  finally{if(version===separationVersion){el('cancel-separation').hidden=true;el('separate-btn').disabled=!uploadedFile||location.hostname.endsWith('github.io');}}
+  finally{if(version===separationVersion){el('cancel-separation').hidden=true;el('separate-btn').disabled=!uploadedFile||!['localhost','127.0.0.1','[::1]'].includes(location.hostname);}}
 }
 audioTrack.addEventListener('play',()=>{if(useStems)stemMixer.start(audioTrack.currentTime,audioTrack.playbackRate).catch(error=>showToast(error.message));});
 audioTrack.addEventListener('pause',()=>{if(stemMixer)stemMixer.stop();});
@@ -907,7 +908,7 @@ function runProcessing(sampleName){
   audioTrack.pause();resetSeparation(); S.playing=false; S.playPos=0;el('stem-status').textContent='Separate an uploaded track to practice with individual instruments.';
   S.sample=sampleName;S.loopA=null;S.loopB=null;el('genre-sel').value=S.genre;
   if(sampleName!=='upload'){uploadedFile=null;audioTrack.removeAttribute('src');audioTrack.load();S.waveData=Array(400).fill(0);}
-  el('separate-btn').disabled=!uploadedFile||location.hostname.endsWith('github.io');if(location.hostname.endsWith('github.io'))el('stem-status').textContent='Stem separation is available in the local desktop app. Guided practice and microphone feedback work here.';showScreen('practice-screen');el('nav-practice').disabled=false;el('nav-export').disabled=false;
+  el('separate-btn').disabled=!uploadedFile||!['localhost','127.0.0.1','[::1]'].includes(location.hostname);if(!['localhost','127.0.0.1','[::1]'].includes(location.hostname))el('stem-status').textContent='Stem separation is available in the local desktop app. Guided practice and microphone feedback work here.';window.LibraryWorkspace?.showTrack();showScreen('export-screen');el('nav-practice').disabled=false;el('nav-export').disabled=false;
   el('mode-badge').textContent=S.genre;
   renderTab();renderLicks();drawWaveform();
   el('tab-genre-label').textContent+=(sampleName==='upload'?' · Reference study (not a transcription)':' · Practice study');
@@ -924,7 +925,7 @@ async function loadAudio(file){
     audioURL=URL.createObjectURL(file);uploadedFile=file;audioTrack.src=audioURL;
     const data=buffer.getChannelData(0),step=Math.max(1,Math.floor(data.length/400));
     S.waveData=Array.from({length:400},(_,i)=>{let peak=0;for(let j=i*step;j<Math.min((i+1)*step,data.length);j++)peak=Math.max(peak,Math.abs(data[j]));return peak*(i%2?1:-1);});
-    runProcessing('upload');showToast('Ready: '+file.name);
+    runProcessing('upload');window.LibraryWorkspace?.remember(file);showToast('Ready: '+file.name);
   }catch(error){showToast('This audio file could not be decoded. Try an MP3 or WAV.');}
   finally{await context.close();}
 }
