@@ -79,3 +79,5 @@ html,body{overscroll-behavior-y:none}#app{height:100dvh;padding-bottom:env(safe-
 @media(max-width:650px){.ambient-stage{padding:10px}.ambient-heading h1{font-size:25px}.ambient-status{gap:8px}.ambient-status span{font-size:12px}.ambient-actions label{margin-left:0}.ambient-fret{font-size:19px}.ambient-note{font-size:16px}}
 @media(prefers-reduced-motion:reduce){[data-ambient-cursor]{transition:none!important}}
 .ambient-lesson {max-width:800px}.ambient-neck svg {max-height:250px}.ambient-tab svg {max-height:165px}.ambient-heading h1 {font-size:27px}.ambient-stage {padding:12px}.ambient-actions {position:sticky;bottom:0;background:#171b15;padding:12px 0;z-index:2;border-top:1px solid #494052}.ambient-heading p {margin:8px 0}.ambient-turns {margin:14px 0}
+/* Keep transport below the score so it never covers beat labels. */
+.ambient-actions {position:static}
