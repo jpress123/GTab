@@ -11,3 +11,6 @@ site-dist/
 
 # Personal lesson library; not part of the published app
 Library/
+
+# User-provided visual reference, never publish
+GTab UI_UX.mov
