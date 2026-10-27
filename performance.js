@@ -71,3 +71,36 @@ root.PlayingCoach={
 document.addEventListener('visibilitychange',()=>{if(document.hidden){root.RoutineControl?.pause();close();}});
 window.addEventListener('pagehide',()=>{root.stopRoutine?.();close();});
 })(typeof window==='undefined'?globalThis:window);
+
+/* Target-note feedback for the simple Practice page. No recording or upload. */
+(function(root){
+ function verdict(target,samples,clipped=false){
+  if(clipped)return {kind:'unclear',text:'Too loud — move the guitar away from the microphone.'};
+  if(samples.length<3)return {kind:'unclear',text:'Not enough clear sound — pluck one note near the microphone.'};
+  const sorted=[...samples].sort((a,b)=>a-b),median=sorted[Math.floor(sorted.length/2)];
+  if(sorted.filter(n=>Math.abs(n-median)<.5).length/sorted.length<.7)return {kind:'unclear',text:'Sound was unclear — use headphones and play one note.'};
+  const delta=median-target;
+  if(Math.abs(delta)<=.5)return {kind:'hit',text:'✓ Target hit'};
+  if(Math.abs(Math.abs(delta)-12)<.5)return {kind:'adjust',text:delta>0?'Right note, one octave too high.':'Right note, one octave too low.'};
+  return {kind:'adjust',text:delta>0?'Above the target — try a lower note.':'Below the target — try a higher note.'};
+ }
+ class LandingListener{
+  constructor(report,{media=root.navigator?.mediaDevices,Context=root.AudioContext||root.webkitAudioContext,now=()=>performance.now(),setTimer=setInterval,clearTimer=clearInterval,detect=(x,r)=>root.PitchAssessment.detect(x,r)}={}){Object.assign(this,{report,media,Context,now,setTimer,clearTimer,detect});this.generation=0;}
+  stop(){this.generation++;this.window=null;this.clearTimer(this.timer);this.timer=null;this.cancelCheck?.();this.cancelCheck=null;this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.context?.close().catch(()=>{});this.context=null;this.ready=false;}
+  suspend(){this.window=null;}
+  async start(){this.stop();const id=this.generation;if(!this.media?.getUserMedia||!this.Context)throw new Error('Microphone needs HTTPS and a supported browser.');
+   try{const context=new this.Context();this.context=context;await context.resume();if(id!==this.generation)return false;
+    const stream=await this.media.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});if(id!==this.generation){stream.getTracks().forEach(t=>t.stop());return false;}this.stream=stream;
+    const analyser=context.createAnalyser();analyser.fftSize=4096;context.createMediaStreamSource(stream).connect(analyser);const raw=new Float32Array(4096),down=new Float32Array(2048),quiet=[];let checking=true;
+    this.report('Mute your strings briefly · use headphones.','listening');
+    const checked=await new Promise(resolve=>{this.cancelCheck=()=>resolve(false);this.timer=this.setTimer(()=>{if(id!==this.generation)return;analyser.getFloatTimeDomainData(raw);let energy=0,peak=0;for(let i=0;i<raw.length;i++){energy+=raw[i]*raw[i];peak=Math.max(peak,Math.abs(raw[i]));}const rms=Math.sqrt(energy/raw.length);
+     if(checking){quiet.push(rms);if(quiet.length>=20){checking=false;this.cancelCheck=null;quiet.sort((a,b)=>a-b);this.noise=quiet[Math.floor(quiet.length*.9)];resolve(true);}return;}
+     const w=this.window;if(!w)return;const time=this.now();if(time>=w.end){this.window=null;const result=verdict(w.midi,w.samples,w.clipped);this.report(w.label+' · '+result.text,result.kind);return;}if(time<w.start)return;if(peak>.98){w.clipped=true;return;}if(rms<Math.max(.008,this.noise*3))return;for(let i=0;i<down.length;i++)down[i]=(raw[i*2]+raw[i*2+1])/2;const p=this.detect(down,context.sampleRate/2);if(p.midi!==null&&Number.isFinite(p.midi))w.samples.push(p.midi);
+    },50);});if(!checked||id!==this.generation)return false;if(this.noise>.035)throw new Error('Too much background sound. Use headphones and try Play again.');this.ready=true;
+    stream.getTracks().forEach(t=>t.onended=()=>{if(id!==this.generation)return;this.stop();this.report('Microphone disconnected. Tap Play to stop, then reconnect.','unclear');});return true;
+   }catch(e){if(id!==this.generation)return false;this.stop();throw e;}
+  }
+  expect(midi,label,duration){if(!this.ready)return;const time=this.now();this.window={midi,label,samples:[],clipped:false,start:time+80,end:time+Math.max(300,Math.min(900,duration*1000-35))};this.report(label+' · listening…','listening');}
+ }
+ root.LandingFeedback={verdict,Listener:LandingListener};
+})(typeof window==='undefined'?globalThis:window);
