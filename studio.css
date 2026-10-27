@@ -94,3 +94,5 @@ html,body{overscroll-behavior-y:none}#app{height:100dvh;padding-bottom:env(safe-
 @media(max-width:650px){#lesson-screen{padding:12px 8px}.ambient-stage{padding:10px}.ambient-chart{gap:6px}.ambient-chart>button{width:44px}.ambient-road span{padding:10px 3px;font-size:20px}.ambient-settings{gap:10px}.ambient-heading h1{font-size:24px}.ambient-road{grid-template-columns:repeat(4,minmax(0,1fr))}}
 
 .ambient-stage [data-cue]{font-size:16px;color:#ead7b0;min-height:24px}.ambient-stage [data-feedback="hit"]{color:#c4dda4}.ambient-stage [data-feedback="adjust"]{color:#ffd08c}.ambient-stage [data-feedback="unclear"]{color:#e5cbb0}
+.landing-summary{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:10px 0}.landing-summary[hidden]{display:none}.landing-summary span{border:1px solid currentColor;border-radius:8px;padding:8px 12px;font-size:15px;color:#c7bda8}.landing-summary [data-result="hit"]{color:#c4dda4;background:#284932}.landing-summary [data-result="adjust"]{color:#ffd08c;background:#594026}
+.landing-summary small{flex-basis:100%;text-align:center;color:#c7bda8;font-size:12px}
