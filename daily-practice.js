@@ -35,7 +35,7 @@ const saturdayPhases={morning:[
 ]};
 function validSettings(p){return p&&families[p.family]?.choices.some(c=>c[0]===p.preset)&&['C','A','G','E','D'].includes(p.caged)&&Number.isFinite(p.tempo)&&p.tempo>=40&&p.tempo<=140;}
 function schedule(date=new Date()){
- const first=new Date(2026,9,25),d=date<first?first:date,day=d.getDay();
+ const first=new Date(2026,10,1),d=date<first?first:date,day=d.getDay();
  const level=day===0?1:day<=2?2:day<=4?3:4;
  return {day,level,type:['triads','arpeggios','pentatonic','scales'][level-1],label:day===6?'Weekly performance':['Triads across the fretboard','Seventh arpeggios','Pentatonics','Scales'][level-1],targetSeconds:day===6?3600:1800};
 }

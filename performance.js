@@ -85,7 +85,7 @@ window.addEventListener('pagehide',()=>{root.stopRoutine?.();close();});
   return {kind:'adjust',text:delta>0?'Above the target — try a lower note.':'Below the target — try a higher note.'};
  }
  class LandingListener{
-  constructor(report,{media=root.navigator?.mediaDevices,Context=root.AudioContext||root.webkitAudioContext,now=()=>performance.now(),setTimer=setInterval,clearTimer=clearInterval,detect=(x,r)=>root.PitchAssessment.detect(x,r)}={}){Object.assign(this,{report,media,Context,now,setTimer,clearTimer,detect});this.generation=0;}
+  constructor(report,{media=root.navigator?.mediaDevices,Context=root.AudioContext||root.webkitAudioContext,now=()=>performance.now(),setTimer=(fn,ms)=>root.setInterval(fn,ms),clearTimer=id=>root.clearInterval(id),detect=(x,r)=>root.PitchAssessment.detect(x,r)}={}){Object.assign(this,{report,media,Context,now,setTimer,clearTimer,detect});this.generation=0;}
   stop(){this.generation++;this.window=null;this.clearTimer(this.timer);this.timer=null;this.cancelCheck?.();this.cancelCheck=null;this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.context?.close().catch(()=>{});this.context=null;this.ready=false;}
   suspend(){this.window=null;}
   async start(){this.stop();const id=this.generation;if(!this.media?.getUserMedia||!this.Context)throw new Error('Microphone needs HTTPS and a supported browser.');
