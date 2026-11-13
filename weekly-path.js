@@ -127,11 +127,11 @@ function mountDayPreview(host,m){
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.day-preview')&&e.target.closest('button,a'))stopDayPreview();},true);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopDayPreview();});
-let chosen=null,started=null;try{const p=JSON.parse(localStorage.getItem('gtab-weekly-path'));if(p&&Number.isInteger(p.index)&&p.index>=0&&p.index<24&&Number.isFinite(new Date(p.start).getTime())){chosen=p.index;started=p.start;if(p.calendar!=='sun-2026-11-01'){started='2026-11-01';}}}catch{}
+let chosen=null,started=null;try{const p=JSON.parse(localStorage.getItem('gtab-weekly-path'));if(p&&Number.isInteger(p.index)&&p.index>=0&&p.index<24&&Number.isFinite(new Date(p.start).getTime())){chosen=p.index;started=p.start;if(p.calendar!=='sun-2026-11-15'){started='2026-11-15';}}}catch{}
 const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 function history(){return root.PracticeHistory?.sessions||[];}
-function current(){const rows=history();if(chosen===null)chosen=Math.min(unlocked(rows),Math.max(0,...rows.filter(s=>s.curriculum==='bridges-v2').map(s=>s.weekMission||0)));chosen=Math.min(chosen,unlocked(rows));if(!started)started='2026-11-01';return mission(chosen);}
-function persist(){try{localStorage.setItem('gtab-weekly-path',JSON.stringify({index:chosen,start:started,calendar:'sun-2026-11-01'}));}catch{}}
+function current(){const rows=history();if(chosen===null)chosen=Math.min(unlocked(rows),Math.max(0,...rows.filter(s=>s.curriculum==='bridges-v2').map(s=>s.weekMission||0)));chosen=Math.min(chosen,unlocked(rows));if(!started)started='2026-11-15';return mission(chosen);}
+function persist(){try{localStorage.setItem('gtab-weekly-path',JSON.stringify({index:chosen,start:started,calendar:'sun-2026-11-15'}));}catch{}}
 function nextDate(){current();const d=new Date(started+'T12:00:00');d.setDate(d.getDate()+7);return d;}
 function refresh(){root.PracticeHistory?.refresh();}
 root.WeeklyPractice={current,get start(){current();return started;},mount(host){const m=current(),rows=history(),e=evidence(rows,m.index),end=new Date(started+'T12:00:00');end.setDate(end.getDate()+6);const start=new Date(started+'T12:00:00');const next=nextDate();const canAdvance=e.ready&&e.passed&&dateKey(new Date())>=dateKey(next)&&m.index<23;
