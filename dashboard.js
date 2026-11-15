@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded',()=>{
    }).catch(()=>{});
  }
  if(!['localhost','127.0.0.1'].includes(location.hostname))root.mountPrivateBooks(shelf);
+ root.mountStudyShelf(shelf);
  root.mountPhraseLibrary({shelf,board,draft,send:()=>$('draft-practice').click(),goMix:()=>$('nav-prog').click()});
  let pendingKind='backing',sourceURL=null;const db=new Promise((resolve,reject)=>{const r=indexedDB.open('gtab-audio-library',1);r.onupgradeneeded=()=>r.result.createObjectStore('audio',{keyPath:'id'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
  async function all(){const d=await db;return new Promise((resolve,reject)=>{const r=d.transaction('audio').objectStore('audio').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}

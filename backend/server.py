@@ -209,7 +209,7 @@ class Handler(BaseHTTPRequestHandler):
         # Explicit public allowlist: never expose uploads, model cache, source, or .git.
         if path == '/':
             path = '/index.html'
-        if path in ('/index.html', '/studio.css', '/audio-engine.js', '/stem-client.js', '/guitar-notation.js', '/practice-patterns.js', '/practice-ui.js', '/routine.js', '/performance.js', '/dashboard.js', '/levels.js', '/session-data.js', '/practice-focus.js', '/daily-practice.js', '/weekly-path.js', '/jazz-standards.js', '/phrase-bank.js', '/bank-library.js', '/book-library.js') or re.fullmatch(r'/assets/samples/(?:guitar-acoustic|bass-electric)/[A-G][s]?[1-5]\.mp3', path) or path in ('/assets/samples/LICENSE.md','/assets/samples/ATTRIBUTION.md'):
+        if path in ('/index.html', '/studio.css', '/audio-engine.js', '/stem-client.js', '/guitar-notation.js', '/practice-patterns.js', '/practice-ui.js', '/routine.js', '/performance.js', '/dashboard.js', '/levels.js', '/session-data.js', '/practice-focus.js', '/daily-practice.js', '/weekly-path.js', '/jazz-standards.js', '/phrase-bank.js', '/bank-library.js', '/book-library.js', '/private-study.js') or re.fullmatch(r'/assets/samples/(?:guitar-acoustic|bass-electric)/[A-G][s]?[1-5]\.mp3', path) or path in ('/assets/samples/LICENSE.md','/assets/samples/ATTRIBUTION.md'):
             return self.send_file(ROOT / path.lstrip('/'))
         self.reply(404, {'error': 'Not found.'})
 
