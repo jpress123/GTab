@@ -367,7 +367,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
  if(config.gesture&&ns.some(n=>n.gesture)){
    const cell=ns.filter(n=>n.gesture);
    $('[data-theory]').textContent=cell.map(n=>names[n.midi%12]).join(' → ')+'. Touch the flat fifth briefly, then sing the landing. '+$('[data-theory]').textContent;
-   link.href='https://www.youtube.com/watch?v=MsCu5LLO620&t=160s';link.textContent='André Fludd · blues phrasing at 2:40';
+   link.href='https://www.andrefludd.com/llgty-1#block-1794591816306';link.textContent='Library lesson · André Fludd’s Classic Minor';
  }else{link.href=lesson.url;link.textContent='Library lesson · '+lesson.title;}
  lowFret=current.position;$('.ambient-neck').innerHTML=neck();$('.ambient-scroll').innerHTML=tab(rhythm.value,0,variation);$('.ambient-road').innerHTML=harmony(config).map((c,i)=>`<span data-chord="${i}" class="${i===0?'active':''}">${c.name}</span>`).join('');$('.ambient-road').style.gridTemplateColumns='repeat('+Math.min(4,harmony(config).length)+',minmax(0,1fr))';const target=ns.find(n=>n.step===8)||ns[0];$('[data-ambient-target]').setAttribute('cx',x(target.fret));$('[data-ambient-target]').setAttribute('cy',y(target.string));$('[data-key]').value=config.key;paint();}
  function paint(){const memory=mode==='play';panel.classList.toggle('memory-play',memory&&!hint);

@@ -15,6 +15,17 @@
       <a href="https://truefire.com/blues-guitar-lessons/kings-bb-king/c77">Blues phrasing · Andy Aledort</a> ·
       <a href="https://barryharrismethod.com/method/6.5">Surrounds · Harris workshops</a></details>`;
     shelf.querySelector('.workspace-title').after(section);
+    const lessons=document.createElement('details');
+    lessons.className='workspace-details';
+    lessons.innerHTML='<summary>André Fludd · Keystone blues lessons</summary>';
+    const list=document.createElement('ol');
+    for(const [name,anchor] of [['Classic Major','1794591763230'],['Major Resolve','1794591788365'],['Classic Minor','1794591816306'],['Minor Resolve','1794591831805']]){
+      const item=document.createElement('li'),link=document.createElement('a');
+      link.href='https://www.andrefludd.com/llgty-1#block-'+anchor;
+      link.target='_blank';link.rel='noopener';link.textContent=name;
+      item.append(link);list.append(item);
+    }
+    lessons.append(list);section.after(lessons);
     const channel=document.createElement('div');
     channel.className='console-source';
     channel.innerHTML='<h3>Phrase & backing</h3><label>Phrase <select data-board-phrase></select></label><label>Note pattern <select data-board-pattern></select></label><label>Backing <select data-board-track></select></label>';
