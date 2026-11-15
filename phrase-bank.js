@@ -30,6 +30,9 @@
       id: style.toLowerCase()+'-'+(i*5+variant+1), style, cell, variant,
       name: name+' · '+ending
     }))));
+  for (const song of root.JazzStandards || []) {
+    phrases.push({id:'standard-'+song.id, name:song.name, style:'Jazz standards', song});
+  }
   const rhythms = {mixed:[0,2,4],half:[0,4,6],lyrical:[0,2,4,7], quarters:[0,2,4,6], pickup:[0,3,6,7], spacious:[0,4,6,7]};
   // Bass attacks and guitar attacks are eighth-note positions within each bar.
   const tracks = [
@@ -62,6 +65,16 @@
     const strings=['e','B','G','D','A','E'],open=[64,59,55,50,45,40];
     const first=config.position??4, width=config.width||5, positions=[];
     open.forEach((pitch,i)=>{for(let fret=first;fret<first+width;fret++)positions.push({midi:pitch+fret,string:strings[i],fret});});
+    if (seed.song) {
+      const transpose=(config.key-seed.song.key+18)%12-6;
+      return seed.song.notes.map(([step,midi,length])=>{
+        const pitch=midi+transpose;
+        const candidates=positions.filter(p=>(p.midi-pitch)%12===0);
+        const pool=candidates.length?candidates:open.map((m,i)=>({midi:pitch,string:strings[i],fret:pitch-m})).filter(p=>p.fret>=0&&p.fret<=24);
+        const cost=p=>Math.abs(p.midi-pitch)*4+Math.abs(p.fret-first-2);
+        return {...pool.sort((a,b)=>cost(a)-cost(b))[0],step,length};
+      });
+    }
     return chords.flatMap((chord,bar)=>{
       const target=landing(chord,phrase,bar), next=landing(chords[(bar+1)%chords.length],phrase,(bar+1)%chords.length);
       const cell=phrase.cell;

@@ -4,10 +4,10 @@
     const section=document.createElement('section');
     section.className='library-audio-card phrase-browser';
     section.innerHTML=`<h2>Phrase library</h2>
-      <label>Style <select data-family><option>Triads</option><option>Blues</option><option>Harris</option><option>Enclosures</option><option>Licks</option></select></label>
+      <label>Style <select data-family><option>Triads</option><option>Blues</option><option>Harris</option><option>Enclosures</option><option>Licks</option><option>Jazz standards</option></select></label>
       <label>Phrase <select data-phrase></select></label>
       <label>Note pattern <select data-pattern><option value="lyrical">Long pickup</option><option value="mixed">Quarter · quarter · half</option><option value="half">Half · quarter · quarter</option><option value="quarters">Quarter notes</option><option value="pickup">Beat-four pickup</option><option value="spacious">Long opening</option></select></label>
-      <button data-listen>Hear phrase</button><button data-practice>Practice phrase</button><button data-mix>Use in Mixing Board</button>
+      <p data-score hidden></p><button data-listen>Hear phrase</button><button data-practice>Practice phrase</button><button data-mix>Use in Mixing Board</button>
       <h3>Backing tracks</h3><label>Arrangement <select data-track></select></label>
       <button data-backing>Hear backing</button><button data-use-track>Use backing</button><p data-message role="status"></p>
       <details><summary>Study sources</summary><p>Original studies develop ten motifs per style with five endings. Backings follow your progression, key and tempo.</p>
@@ -29,7 +29,7 @@
     const get=q=>section.querySelector(q), family=get('[data-family]'), phrase=get('[data-phrase]'), track=get('[data-track]'),pattern=get('[data-pattern]'),msg=get('[data-message]');
     const boardPhrase=channel.querySelector('[data-board-phrase]'), boardTrack=backing.querySelector('[data-board-track]'),boardPattern=channel.querySelector('[data-board-pattern]');
     const option=(name,value)=>new Option(name,value);
-    for(const style of ['Triads','Blues','Harris','Enclosures','Licks']){
+    for(const style of ['Triads','Blues','Harris','Enclosures','Licks','Jazz standards']){
       const group=document.createElement('optgroup');group.label=style;
       bank.phrases.filter(p=>p.style===style).forEach(p=>group.append(option(p.name,p.id)));
       boardPhrase.append(group);
@@ -55,7 +55,17 @@
     boardTrack.onchange=()=>{draft.trackId=+boardTrack.value;};
     boardPattern.onchange=()=>{draft.rhythm=boardPattern.value;};
     board.addEventListener('click',e=>{if(e.target.closest('[data-draft-preset]')){delete draft.trackId;refresh();}});
-    function selected(){return {...draft,phraseId:phrase.value,rhythm:pattern.value,trackId:+track.value,position:draft.position||4};}
+    function showScore(){
+      const song=bank.phraseFor(phrase.value).song, info=get('[data-score]');
+      info.hidden=!song;pattern.disabled=!!song;
+      if(!song)return;
+      info.textContent='Opening melody · 4 bars · ';
+      if(song.source.startsWith('https://')){
+        const link=document.createElement('a');link.href=song.source;link.textContent='Lead sheet';link.target='_blank';link.rel='noopener';info.append(link);
+      }else info.append(song.source);
+    }
+    showScore();
+    function selected(){const song=bank.phraseFor(phrase.value).song;return {...draft,...(song?{key:song.key,shape:'E',width:5,weeklyKey:undefined}:{}),phraseId:phrase.value,rhythm:pattern.value,trackId:+track.value,position:draft.position||4};}
     let request=0,runner,guitar,bass,active;
     function stop(){
       request++;runner?.stop();guitar?.dispose();bass?.dispose();guitar=bass=null;active=null;
@@ -75,12 +85,12 @@
           if(type!=='backing'&&e.note)guitar.triggerAttackRelease(Tone.Frequency(e.note.midi,'midi').toNote(),d*e.note.length*.92,Tone.now(),.82);
         },onFinish:stop});
         const events=AmbientLessonModel.events(cfg.rhythm,0,false,cfg);
-        runner.start(type!=='backing'?events.slice(0,17):events,{bpm:cfg.tempo});
+        runner.start(type!=='backing'&&!bank.phraseFor(cfg.phraseId).song?events.slice(0,17):events,{bpm:cfg.tempo});
       }catch{if(ticket===request){stop();(type==='board'?channel.querySelector('[data-board-msg]'):msg).textContent='Could not start audio. Tap to try again.';}}
     }
     get('[data-listen]').onclick=()=>hear('phrase');get('[data-backing]').onclick=()=>hear('backing');
-    family.onchange=()=>{stop();populate();fillTracks(track,{...draft,phraseId:phrase.value});};
-    phrase.onchange=()=>{stop();fillTracks(track,{...draft,phraseId:phrase.value});};
+    family.onchange=()=>{stop();populate();showScore();fillTracks(track,{...draft,phraseId:phrase.value});};
+    phrase.onchange=()=>{stop();showScore();fillTracks(track,{...draft,phraseId:phrase.value});};
     track.onchange=pattern.onchange=stop;
     function use(){stop();Object.assign(draft,selected());refresh();}
     get('[data-practice]').onclick=()=>{use();send();};
