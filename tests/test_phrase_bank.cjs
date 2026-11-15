@@ -24,3 +24,12 @@ test('response pairs replay the same harmony and melody, including an odd final 
   assert.deepEqual(turns.filter(e=>e.turn==='Listen').map(e=>e.step),turns.filter(e=>e.turn==='Answer').map(e=>e.step));
   assert.equal(turns.length,56);
 });
+test('CAGED positions follow the key and cycle without producing out-of-range tab',()=>{
+ const cfg={key:9,shape:'E',octaves:3,phraseId:'enclosures-1',passing:true};
+ assert.equal(AmbientLessonModel.settings(cfg).position,5);
+ for(const [register,base] of [5,0,7].entries()){
+   const notes=AmbientLessonModel.events('quarters',0,false,cfg,register).filter(e=>e.note);
+   assert.ok(notes.every(e=>e.note.fret>=base&&e.note.fret<=base+4));
+ }
+ assert.ok(AmbientLessonModel.melody('quarters',0,cfg).length>AmbientLessonModel.melody('quarters',0,{...cfg,passing:false}).length);
+});

@@ -17,7 +17,10 @@
       ['Rising answer', '359'], ['Delayed root', '311'], ['Guide-tone arc', '3v5'], ['Return from five', '531']
     ]
   };
+  styles.Enclosures=[['Close surround','135'],['Echo','351'],['Fifth first','513']];
+  styles.Licks=[['Rising hook','139'],['Falling answer','s53'],['Blue turn','5b1']];
   const endings = {
+    Enclosures:['Above–below','Below–above'],Licks:['Pickup','Reply'],
     Triads: ['Nearest tone','Third to third','Fifth to root','Root to fifth','Common tone'],
     Blues: ['Low reply','Sweet third','Fifth answer','Ninth colour','Blue seventh'],
     Harris: ['Above–below','Below–above','Whole step above','Whole step below','Wide surround']
@@ -41,7 +44,7 @@
     const pair=tracks.filter(t=>t.preset===config.preset);
     return (pair[phraseFor(config.phraseId).style==='Harris'?1:0]||tracks[0]).id;
   }
-  function third(chord){return /m(?!aj)/.test(chord.name)?3:4;}
+  function third(chord){return /m(?!aj)|dim/.test(chord.name)?3:4;}
   function degree(symbol,chord){
     return chord.pc+({'1':0,'3':third(chord),'5':7,'9':14,b:3,f:5,s:9,v:10}[symbol]);
   }
@@ -57,13 +60,13 @@
     const phrase=family[(family.indexOf(seed)+variation)%family.length];
     const onsets=rhythms[rhythm]||rhythms.lyrical;
     const strings=['e','B','G','D','A','E'],open=[64,59,55,50,45,40];
-    const first=config.position||4, width=config.width||5, positions=[];
+    const first=config.position??4, width=config.width||5, positions=[];
     open.forEach((pitch,i)=>{for(let fret=first;fret<first+width;fret++)positions.push({midi:pitch+fret,string:strings[i],fret});});
     return chords.flatMap((chord,bar)=>{
       const target=landing(chord,phrase,bar), next=landing(chords[(bar+1)%chords.length],phrase,(bar+1)%chords.length);
       const cell=phrase.cell;
       let pitches=[target,nearest(degree(cell[0],chord),target),nearest(degree(cell[1],chord),target),nearest(degree(cell[2],chord),next)];
-      if(phrase.style==='Harris'){
+      if(['Harris','Enclosures'].includes(phrase.style)){
         const surrounds=[[1,-1],[-1,1],[2,-1],[-2,1],[2,-2]];
         const [above,below]=surrounds[phrase.variant];
         pitches[1]=nearest(degree(cell[bar%3],chord),target);
@@ -75,14 +78,24 @@
         pitches[3]=candidates.sort((a,b)=>Math.abs(a-next)-Math.abs(b-next))[0];
       }
       if(onsets.length===3)pitches=[pitches[0],pitches[2],pitches[3]];
+      const steps=[...onsets];
+      if(config.passing){
+        for(let i=steps.length-1;i>0;i--){
+          if(steps[i]-steps[i-1]<2||Math.abs(pitches[i]-pitches[i-1])<2)continue;
+          steps.splice(i,0,steps[i]-1);
+          pitches.splice(i,0,pitches[i]+Math.sign(pitches[i-1]-pitches[i]));
+          break;
+        }
+      }
       let last;
       return pitches.map((pitch,i)=>{
+        if(Number.isInteger(config.weeklyKey))pitch+=(config.key-config.weeklyKey+12)%12;
         const available=positions.filter(pos=>(pos.midi-pitch)%12===0);
         const cost=p=>Math.abs(p.midi-pitch)*3+(last?Math.abs(p.fret-last.fret):0);
         last=available.sort((a,b)=>cost(a)-cost(b))[0];
-        const end=onsets[i+1]??8;
+        const end=steps[i+1]??8;
         const breath=(rhythm==='lyrical'||rhythm==='spacious')&&(i===1||i===3&&bar%2);
-        return {...last,step:bar*8+onsets[i],length:Math.max(1,end-onsets[i]-(breath?1:0))};
+        return {...last,step:bar*8+steps[i],length:Math.max(1,end-steps[i]-(breath?1:0))};
       });
     });
   }

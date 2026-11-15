@@ -1,7 +1,7 @@
 /* Original SVG guitar notation. String order is low E to high E. */
 window.GuitarNotation = (() => {
   const tuning=[40,45,50,55,59,64];
-  const names=['E','A','D','G','B','E'];
+  const names=['E','A','D','G','B','e'];
   const shapes={
     C:[[-1,3,2,0,1,0],[0,3,2,0,1,0]], D:[[-1,-1,0,2,3,2],[0,0,0,1,3,2]],
     E:[[0,2,2,1,0,0],[0,2,3,1,0,0]], G:[[3,2,0,0,0,3],[2,1,0,0,0,3]],
