@@ -100,3 +100,10 @@ html,body{overscroll-behavior-y:none}#app{height:100dvh;padding-bottom:env(safe-
 .phrase-browser,.console-source:has([data-board-phrase]){display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:16px}.phrase-browser h2,.phrase-browser h3,.phrase-browser details,.console-source h3{width:100%;margin:8px 0}.phrase-browser label,.console-source label,.ambient-method label{display:inline-flex;align-items:center;gap:6px}.phrase-browser select,.phrase-browser button,.console-source select,.ambient-method select{min-height:44px;max-width:100%;border-radius:6px;padding:6px 10px}.phrase-browser details a{color:#d7c49d}.ambient-method input{width:20px;height:20px}
 .ambient-lesson.recalling .ambient-tab svg,.ambient-lesson.recalling [data-ambient-dot]{visibility:hidden}
 .day-study svg{display:block;width:min(100%,650px);margin:8px 0}.day-study svg rect{fill:#9a724a}.day-study path{stroke:#e7d6b6;stroke-width:2}.day-study svg text{fill:#ebddbe;text-anchor:middle;text-transform:none}.day-study circle{fill:#f8dfa8;stroke:#503b28}.day-study .active circle{fill:#89d395;stroke:#fff;stroke-width:3}.week-schedule button[aria-pressed=true]{outline:2px solid #c5ef85}.string-label{text-transform:none!important}.ambient-controls{flex-wrap:wrap;align-items:center}.ambient-controls .ambient-tempo{gap:5px}.ambient-controls .ambient-tempo button{flex:none;width:44px}.ambient-controls .ambient-tempo output{min-width:56px}
+
+.ambient-lesson.memory-play [data-ambient-dot],
+.ambient-lesson.memory-play [data-ambient-target],
+.ambient-lesson.memory-play [data-landing-hit],
+.ambient-lesson.memory-play .ambient-tab { visibility: hidden; }
+.ambient-lesson [data-hint][hidden] { display: none; }
+.day-study [data-open] { font-weight: 700; }
