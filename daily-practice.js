@@ -36,8 +36,8 @@ const saturdayPhases={morning:[
 function validSettings(p){return p&&families[p.family]?.choices.some(c=>c[0]===p.preset)&&['C','A','G','E','D'].includes(p.caged)&&Number.isFinite(p.tempo)&&p.tempo>=40&&p.tempo<=140;}
 function schedule(date=new Date()){
  const first=new Date(2026,10,15),d=date<first?first:date,day=d.getDay();
- const level=day===0?1:day<=2?2:day<=4?3:4;
- return {day,level,type:['triads','arpeggios','pentatonic','scales'][level-1],label:day===6?'Weekly performance':['Triads across the fretboard','Seventh arpeggios','Pentatonics','Scales'][level-1],targetSeconds:day===6?3600:1800};
+ const level=day===0?1:day<=2?2:day<=5?3:4;
+ return {day,level,type:['triads','arpeggios','pentatonic','scales'][level-1],label:day===6?'Weekly performance':day===5?'Keystone pentatonics':['Triads across the fretboard','Seventh arpeggios','Pentatonics','Scales'][level-1],targetSeconds:day===6?3600:1800};
 }
 function stage(kind,seconds,targetSeconds=1800,day){seconds/=targetSeconds/1800;let end=0;return (day===6?saturdayPhases:phases)[kind].map((p,i)=>{const start=end;end+=p[0]*60;return {index:i,start,end,title:p[1],prompt:p[2]};}).find(p=>seconds<p.end)||{index:4,start:1620,end:1800,title:'Complete',prompt:''};}
 root.DailyCurriculum={families,phases,stage,schedule};
