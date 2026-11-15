@@ -224,7 +224,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
    const shape=shapes.includes(value.shape)?value.shape:null;
    const position=shape?(key-({E:4,A:9,D:2}[shape])+12)%12:Math.max(1,Math.min(7,+value.position||4));
    return {key,shape,position,width:[3,4,5].includes(+value.width)?+value.width:5,
-     weeklyKey:value.weeklyKey,mode:value.mode,passing:!!value.passing,trackId:value.trackId,
+     gesture:value.gesture||0,weeklyKey:value.weeklyKey,mode:value.mode,passing:!!value.passing,trackId:value.trackId,
      preset:recipes[value.preset]?value.preset:'minor',octaves:[2,3].includes(+value.octaves)?+value.octaves:1,
      ...(value.phraseId?{phraseId:root.PhraseBank.phraseFor(value.phraseId).id}:{})};
  }
@@ -239,12 +239,23 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
    const native=['minor','andalusian','neoclassical'].includes(c.preset)?'minor':'major';return c.mode&&c.mode!==native?(alternate[c.preset]||recipes[c.preset]):recipes[c.preset];}
  function harmony(value={}){const c=settings(value);return progression(c).map(([offset,quality],i)=>{const pc=(c.key+offset)%12,third=(quality.startsWith('m')&&!quality.startsWith('maj')||quality==='dim')?3:4;let target=pc+(i===0&&c.preset==='minor'?0:third);while(target<55)target+=12;while(target>66)target-=12;return {name:names[pc]+quality,pc,target,voicing:[36+pc,48+(pc+third)%12,48+(pc+(quality.includes('b5')||quality==='dim'?6:7))%12,...(quality.includes('7')?[48+(pc+(quality==='maj7'?11:10))%12]:[])]};});}
  function place(notes,maxStart=19){let best;for(let lo=0;lo<=maxStart;lo++){let previous=null,cost=Math.abs(lo-5)*.5;const mapped=[];for(const n of notes){const candidates=open.map((m,i)=>({string:strings[i],si:i,fret:n.midi-m})).filter(p=>p.fret>=lo&&p.fret<=lo+4&&p.fret<=24);if(!candidates.length){cost=Infinity;break;}candidates.sort((a,b)=>move(a)-move(b));const pos=candidates[0];cost+=move(pos);mapped.push({...n,string:pos.string,fret:pos.fret});previous=pos;function move(p){return previous?Math.abs(p.fret-previous.fret)+Math.abs(p.si-previous.si)*1.5:Math.abs(p.fret-(lo+2))*.2;}}if(!best||cost<best.cost)best={cost,notes:mapped,lo};}if(!Number.isFinite(best?.cost))throw new Error('No compact fingering available');return best;}
+ function canStudyGesture(c){return ['minor','blues'].includes(c.preset)&&!root.PhraseBank.phraseFor(c.phraseId).song;}
  function melody(rhythm='mixed',variation=0,value={}){const c=settings(value),chords=harmony(c);if(c.phraseId){
-   if(Number.isInteger(c.weeklyKey)){
-     const base=harmony({...c,key:c.weeklyKey});
-     return root.PhraseBank.compose(c,base,rhythm,variation);
-   }
-   return root.PhraseBank.compose(c,chords,rhythm,variation);
+   const base=Number.isInteger(c.weeklyKey)?harmony({...c,key:c.weeklyKey}):chords;
+   const notes=root.PhraseBank.compose(c,base,rhythm,variation);
+   if(!c.gesture||!canStudyGesture(c))return notes;
+   const next=chords.findIndex((ch,i)=>i>0&&ch.name!==chords[i-1].name);
+   const boundary=next*8,pc=chords[next-1].pc;
+   const target=notes.find(n=>n.step>=boundary).midi;
+   const degrees=c.gesture===1?[5,6,5,7]:[7,6,5,7],steps=[0,3,4,6],lengths=[3,1,2,2];
+   // Choose one octave for the cell so the blue note stays a half-step neighbor.
+   const positions=new Map();
+   open.forEach((pitch,i)=>{for(let f=c.position;f<c.position+c.width;f++)positions.set(pitch+f,{string:strings[i],fret:f});});
+   const roots=Array.from(positions.keys()).map(m=>m-5).filter(m=>(m-pc)%12===0&&degrees.every(d=>positions.has(m+d)));
+   if(!roots.length)return notes;
+   const anchor=roots.sort((a,b)=>Math.abs(a+7-target)-Math.abs(b+7-target))[0];
+   const cell=degrees.map((d,i)=>({midi:anchor+d,...positions.get(anchor+d),step:boundary-8+steps[i],length:lengths[i],gesture:true}));
+   return [...notes.filter(n=>n.step<boundary-8),...cell,...notes.filter(n=>n.step>=boundary)];
  }const raw=chords.flatMap((ch,bar)=>{const target=chords[(bar+1)%chords.length].target;const base=bar<=variation?[ch.target,target+1,target-1]:[ch.target,ch.target+3,target+1];if(rhythm==='call'){const fifth=ch.target+3,answer=bar%2===1;return [{step:bar*8,midi:ch.target,length:answer?4:2},{step:bar*8+(answer?4:2),midi:fifth,length:answer?1:2},{step:bar*8+6,midi:base[1],length:1},{step:bar*8+7,midi:base[2],length:1}];}const pitches=rhythm==='quarter'?[base[0],ch.target+2,base[1],base[2]]:base;const lengths=rhythm==='surround'?[6,1,1]:rhythm==='half'?[4,2,2]:rhythm==='quarter'?[2,2,2,2]:[2,2,4];let offset=0;return pitches.map((midi,i)=>{const n={step:bar*8+offset,midi,length:lengths[i]};offset+=lengths[i];return n;});});return place(raw,c.octaves===2?7:19).notes;}
  const theoryLessons={
   "voiceLeading": {
@@ -297,7 +308,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
    const start=arrival.step-8;
    return events.filter(e=>e.countIn||(e.step>=start&&e.step<end)).map(e=>{
      if(e.countIn)return e;
-     const held=e.held?.step===landing.step||before&&e.held?.step===before.step?e.held:null;
+     const held=e.held?.gesture||e.held?.step===landing.step||before&&e.held?.step===before.step?e.held:null;
      const note=e.note&&held?e.note:e.step===start&&held?{...held,length:held.step+held.length-start}:null;
      return {...e,note,held,target:landing,loopLanding:e.step===Math.max(arrival.step,landing.step),landingNote:landing};
    });
@@ -318,7 +329,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
  chords.forEach((c,i)=>{svg+=`<text x="${45+i*400}" y="22" fill="white" font-size="20">${c.name}</text>`;for(let beat=0;beat<4;beat++)svg+=`<text x="${45+i*400+beat*100}" y="215" fill="#d5cfe5">${beat+1}</text>`;});
  notes.forEach(n=>{const px=45+n.step*50,py=53+strings.indexOf(n.string)*24;svg+=`<g data-ambient-tab="${n.step}"><rect x="${px-12}" y="${py-14}" width="24" height="28" rx="5" fill="#302044"/><text x="${px}" y="${py+7}" text-anchor="middle" fill="white" font-size="22">${n.fret}</text><line x1="${px+13}" x2="${px+n.length*50-15}" y1="${py}" y2="${py}" stroke="#d3c6e6" stroke-width="3"/></g>`;});return svg+'</svg>';}
  root.AmbientLesson={score:()=>tab('lyrical',0,0,config,0),mount(host){cleanup();const panel=document.createElement('section');panel.className='ambient-lesson';panel.innerHTML=`<span hidden data-variation></span><div class="ambient-controls"><button class="bak-btn" data-mode="listen">Listen</button><button class="bak-btn" data-mode="sing" aria-pressed="false" title="Sing from memory over the backing.">Sing</button><button class="bak-btn" data-mode="play" aria-pressed="false" title="Listen for target notes with your microphone. Use headphones. Tap again to stop.">Play</button><button data-hint hidden aria-pressed="false">Hint</button><div class="ambient-tempo"><button data-less aria-label="Fewer repetitions">−</button><output data-reps></output><button data-more aria-label="More repetitions">+</button></div><div class="ambient-tempo"><button data-slower aria-label="Decrease BPM">−</button><output data-bpm>45 BPM</output><button data-faster aria-label="Increase BPM">+</button><input type="hidden" data-speed value="45"></div></div><div class="ambient-settings"><label>Key <select data-key aria-label="Practice key">${names.map((n,i)=>`<option value="${i}" ${i===config.key?'selected':''}>${n}</option>`).join('')}</select></label><label>Phrasing <select data-style>${['Triads','Blues','Harris','Enclosures','Licks','Jazz standards'].map(s=>`<option>${s}</option>`).join('')}</select></label><label>Rhythm <select data-rhythm aria-label="Note pattern"><option value="lyrical">Long pickup</option><option value="mixed">Quarter · quarter · half</option><option value="half">Half · quarter · quarter</option><option value="quarters">Quarter notes</option><option value="pickup">Beat-four pickup</option><option value="spacious">Long opening</option></select></label><label>Play-along <select data-turn><option value="memory">From memory</option><option value="with">Play with me</option><option value="respond">Listen &amp; respond</option></select></label></div><details class="ambient-method"><summary>Practice setup</summary><button class="bak-btn" data-spin title="Next phrase in this style">Spin</button><label>Position <select data-position>${shapes.map(n=>`<option>${n}</option>`).join('')}</select></label> <label>Reach <select data-width><option value="3">3 frets</option><option value="4">4 frets</option><option value="5">5 frets</option></select></label> <label>Registers <select data-registers><option value="1">1 octave</option><option value="2">2 octaves</option><option value="3">3 octaves · E/A/D</option></select></label> <label><input type="checkbox" data-mic checked> Check target notes</label><p>Sing the first two bars from memory, then answer on guitar. Each repetition uses the same phrase.</p></details><div class="ambient-stage"><div class="ambient-chart"><button data-pause aria-label="Pause playback" title="Pause or resume">Ⅱ</button><div class="ambient-road" aria-label="Chord progression">${harmony(config).map((c,i)=>`<span data-chord="${i}" class="${i===0?'active':''}">${c.name}</span>`).join('')}</div><button data-repeat aria-label="Repeat phrase" title="Restart this phrase">↻</button></div><p data-phrase-turn></p><p data-cue role="status"></p><div class="ambient-neck">${neck()}</div><div class="ambient-beats" aria-label="Four beat count">${[1,2,3,4].map(b=>`<span data-ambient-beat="${b}">${b}</span>`).join('')}</div><div data-landing-summary class="landing-summary" role="status" hidden></div><div class="ambient-tab ambient-scroll">${tab()}</div></div>`;host.append(panel);
- panel.insertAdjacentHTML('beforeend','<details class="ambient-method"><summary>Theory</summary><p data-theory></p><button type="button" class="bak-btn" data-change-loop aria-pressed="false">Loop change</button> <a data-theory-lesson target="_blank" rel="noopener"></a></details>');
+ panel.insertAdjacentHTML('beforeend','<details class="ambient-method"><summary>Theory</summary><p data-theory></p><button type="button" class="bak-btn" data-change-loop aria-pressed="false">Loop change</button> <button type="button" class="bak-btn" data-gesture>Try blues gesture</button> <a data-theory-lesson target="_blank" rel="noopener"></a></details>');
  const setup=panel.querySelector('.ambient-method');
  setup.append(panel.querySelector('.ambient-settings'));
  const recallBox=document.createElement('div');recallBox.hidden=true;
@@ -345,7 +356,14 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
  if(toggle.disabled)looping=false;
  toggle.textContent=looping?'Full phrase':'Loop change';toggle.setAttribute('aria-pressed',String(looping));
  const lesson=lessonForChange(config),link=$('[data-theory-lesson]');
- link.href=lesson.url;link.textContent='Library lesson · '+lesson.title;
+ const gesture=$('[data-gesture]');
+ gesture.hidden=checking||!canStudyGesture(config);
+ gesture.textContent=['Try blues gesture','Vary the opening','Restore phrase'][config.gesture];
+ if(config.gesture&&ns.some(n=>n.gesture)){
+   const cell=ns.filter(n=>n.gesture);
+   $('[data-theory]').textContent=cell.map(n=>names[n.midi%12]).join(' → ')+'. Touch the flat fifth briefly, then sing the landing. '+$('[data-theory]').textContent;
+   link.href='https://www.youtube.com/watch?v=MsCu5LLO620&t=160s';link.textContent='André Fludd · blues phrasing at 2:40';
+ }else{link.href=lesson.url;link.textContent='Library lesson · '+lesson.title;}
  lowFret=current.position;$('.ambient-neck').innerHTML=neck();$('.ambient-scroll').innerHTML=tab(rhythm.value,0,variation);$('.ambient-road').innerHTML=harmony(config).map((c,i)=>`<span data-chord="${i}" class="${i===0?'active':''}">${c.name}</span>`).join('');$('.ambient-road').style.gridTemplateColumns='repeat('+Math.min(4,harmony(config).length)+',minmax(0,1fr))';const target=ns.find(n=>n.step===8)||ns[0];$('[data-ambient-target]').setAttribute('cx',x(target.fret));$('[data-ambient-target]').setAttribute('cy',y(target.string));$('[data-key]').value=config.key;paint();}
  function paint(){const memory=mode==='play';panel.classList.toggle('memory-play',memory&&!hint);
  $('[data-hint]').hidden=!memory;$('[data-hint]').setAttribute('aria-pressed',String(hint));
@@ -386,6 +404,10 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
  root.AmbientLesson.notes=()=>melody(rhythm.value,variation,config);
  root.AmbientLesson.chords=()=>harmony(config);
  root.AmbientLesson.score=()=>tab(rhythm.value,0,variation,config,0);
+ $('[data-gesture]').onclick=()=>{
+   config.gesture=(config.gesture+1)%3;looping=!!config.gesture;
+   if(looping)begin('listen');else{stop();redraw();}
+ };
  $('[data-change-loop]').onclick=()=>{
    if(looping){stop();looping=false;redraw();cue.textContent='Full phrase';}
    else{looping=true;begin('listen');}
