@@ -137,7 +137,7 @@ function mountWeekPhrase(node,m,start){
  <button class="bak-btn" data-draw hidden>Next test</button><output data-status></output>`;
  node.prepend(box);
  const get=q=>box.querySelector(q), buttons=[...node.querySelectorAll('[data-preview-day]')];
- const offsets=[0,5,2,7,4,10],shapes=['E','A','D'];
+ const cues=AmbientLessonModel.gestureCues;
  let day=Math.min(6,Math.max(0,Math.floor((Date.UTC(...parts(new Date()))-Date.UTC(...parts(start)))/86400000)));
  function parts(d){return [d.getFullYear(),d.getMonth(),d.getDate()];}
  let trial=-1,cfg,events,runner,voice,bass,generation=0,playing=false;
@@ -149,19 +149,19 @@ function mountWeekPhrase(node,m,start){
  function select(index){
    stop();day=index;
    trial=index===6?(trial<0?Math.floor(Math.random()*6):(trial+1+Math.floor(Math.random()*5))%6):index;
-   const shape=shapes[trial%3],key=(m.key+offsets[trial])%12;
-   cfg={preset:m.preset,key,weeklyKey:m.key,shape,width:5,octaves:1,tempo:45,rhythm:'lyrical',
+   const shape='E',key=m.key;
+   cfg={gestureDay:trial,gesture:1,preset:m.preset,key,weeklyKey:m.key,shape,width:5,octaves:1,tempo:45,rhythm:'lyrical',
      phraseId:m.preset==='blues'?'blues-1':m.preset==='sevenths'?'harris-1':'triads-'+(1+m.index%5)};
-   events=AmbientLessonModel.events(cfg.rhythm,0,false,cfg);
+   events=AmbientLessonModel.changeLoop(AmbientLessonModel.events(cfg.rhythm,0,false,cfg));
    const date=new Date(start);date.setDate(date.getDate()+day);
    const lo=AmbientLessonModel.settings(cfg).position;
    get('[data-assignment]').textContent=date.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})+' · '+(day===6?'Exam · ':'')+['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'][key]+' · '+shape+' shape · frets '+lo+'–'+(lo+4);
    buttons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===day)));
    get('[data-draw]').hidden=day!==6;get('[data-status]').textContent='';
    const notes=events.filter(e=>e.note);
-   get('[data-week-name]').textContent=PhraseBank.phraseFor(cfg.phraseId).name;
-   const landing=notes.find(e=>e.bar===1);
-   get('[data-musical-cue]').textContent='Sing '+PracticePatterns.noteName(landing.note.midi)+' as '+events[0].chord+' moves to '+landing.chord+'.';
+   get('[data-week-name]').textContent='Blue-note phrase · '+events[0].chord+' → '+events[events.length-1].chord;
+   const landing=events.find(e=>e.loopLanding);
+   get('[data-musical-cue]').textContent=cues[trial]+' Sing '+PracticePatterns.noteName(landing.landingNote.midi)+' as '+events[0].chord+' moves to '+landing.chord+'.';
    const dots=new Map(notes.map(e=>[e.note.string+e.note.fret,e.note]));
    const strings=['e','B','G','D','A','E'];
    const x=f=>72+(f-lo)*70,y=i=>24+i*22;
@@ -169,13 +169,13 @@ function mountWeekPhrase(node,m,start){
    const frets=Array.from({length:5},(_,i)=>`<path d="M${x(lo+i)-35} 15v130"/><text x="${x(lo+i)}" y="165">${lo+i}</text>`).join('');
    const markers=[...dots].map(([id,n])=>`<g data-point="${id}"><circle cx="${x(n.fret)}" cy="${y(strings.indexOf(n.string))}" r="9"/><title>${PracticePatterns.noteName(n.midi)}</title></g>`).join('');
    get('[data-map]').innerHTML=`<strong data-chords></strong><svg viewBox="0 0 405 176" role="img" aria-label="Daily phrase fretboard"><rect x="36" y="14" width="352" height="132" rx="5"/>${rows+frets+markers}</svg>`;
-   get('[data-chords]').textContent=AmbientLessonModel.harmony(cfg).map(c=>c.name).join(' · ');
+   get('[data-chords]').textContent=events[0].chord+' → '+landing.chord;
  }
  buttons.forEach((b,i)=>b.onclick=()=>select(i));get('[data-draw]').onclick=()=>select(6);
  get('[data-open]').onclick=()=>{
    if(root.DailyPractice?.active){get('[data-status]').textContent='Finish your timed session first.';return;}
    stop();root.AmbientLesson.configure(cfg);
-   const previous=day===6?cfg:day>0?{...cfg,key:(m.key+offsets[day-1])%12,shape:shapes[(day-1)%3]}:null;
+   const previous=day===6?cfg:day>0?{...cfg,gestureDay:day-1}:null;
    root.AmbientLesson.offerRecall(previous,cfg,day===6);
    document.getElementById('lesson-home').hidden=false;document.getElementById('custom-lesson').hidden=true;
    document.getElementById('nav-practice').click();
@@ -187,10 +187,10 @@ function mountWeekPhrase(node,m,start){
      voice=StudioSound.voice('guitar');bass=StudioSound.voice('bass');
      runner=new PracticePatterns.Runner({play(e,d){
        PhraseBank.accompany(PhraseBank.tracks[PhraseBank.recommended(cfg)],e,d,voice,bass);
-       if(e.note)voice.triggerAttackRelease(Tone.Frequency(e.note.midi,'midi').toNote(),e.note.length*d*.95,Tone.now(),.8);
+       if(e.note)voice.triggerAttackRelease(Tone.Frequency(e.note.midi,'midi').toNote(),e.note.length*d*.95,Tone.now(),e.note.velocity??.8);
        get('[data-chords]').textContent=e.chord;
        box.querySelectorAll('[data-point]').forEach(g=>g.classList.toggle('active',!!e.held&&g.dataset.point===e.held.string+e.held.fret));
-     },onFinish:()=>{stop();get('[data-chords]').textContent=AmbientLessonModel.harmony(cfg).map(c=>c.name).join(' · ');}});
+     },onFinish:()=>{stop();get('[data-chords]').textContent=events[0].chord+' → '+events[events.length-1].chord;}});
      runner.start(events,{bpm:cfg.tempo});
    }catch{if(ticket===generation){stop();get('[data-status]').textContent='Audio unavailable. Tap Listen to retry.';}}
  };
@@ -207,7 +207,7 @@ function persist(){try{localStorage.setItem('gtab-weekly-path',JSON.stringify({i
 function nextDate(){current();const d=new Date(started+'T12:00:00');d.setDate(d.getDate()+7);return d;}
 function refresh(){root.PracticeHistory?.refresh();}
 root.WeeklyPractice={current,get start(){current();return started;},mount(host){const m=current(),rows=history(),e=evidence(rows,m.index),end=new Date(started+'T12:00:00');end.setDate(end.getDate()+6);const start=new Date(started+'T12:00:00');const next=nextDate();const canAdvance=e.ready&&e.passed&&dateKey(new Date())>=dateKey(next)&&m.index<23;
- const road=m.level===2?RoutineModel.build(m.key,m.preset,['arpeggios'],1).chords.map(c=>c.name):m.chords;const cue=m.level===2?'Sing the next third or seventh. Small steps, clear arrivals.':m.cue;const node=document.createElement('section');node.className='weekly-map';node.innerHTML=`<div class="weekly-heading"><div><span class="eyebrow">${start.toLocaleDateString(undefined,{month:'short',day:'numeric'})}–${end.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span></div><span class="xp-medal" aria-label="${xp(rows)} experience points">★ ${xp(rows)} XP</span></div><ol class="week-schedule">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((day,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return `<li class="${dateKey(d)===dateKey(new Date())?'active':''}"><button type="button" data-preview-day="${i}" aria-pressed="false"><strong>${day} ${d.getDate()}</strong><span>${['E','A','D','E','A','D','Exam'][i]}</span><small>${i===6?'60 + 60 min':'30 + 30 min'}</small></button></li>`;}).join('')}</ol><details class="weekly-mission"><summary>Week progress</summary><span class="eyebrow">${m.caged} AREA · ${m.tempo} BPM</span><h2>${m.name}</h2><div class="chord-road">${road.map((c,i)=>`<span>${c}</span>${i<road.length-1?'<b aria-hidden="true">→</b>':''}`).join('')}</div><p>${cue}</p><div class="week-progress" aria-label="${e.sessions.length} of 3 sessions completed">${[0,1,2].map(i=>`<span class="${i<e.sessions.length?'earned':''}">${i<e.sessions.length?'✓':'○'}</span>`).join('')}<small>${Math.min(3,e.sessions.length)}/3 sessions · morning + evening</small></div><button class="bak-btn small" id="weekly-check" ${e.ready&&!e.passed?'':'disabled'}>${e.passed?'★ Bridge badge earned':'Review weekly performance'}</button>${e.passed?`<button class="bak-btn small" id="weekly-next" ${canAdvance?'':'disabled'}>${m.index===23?'Path complete':canAdvance?'Start next week →':'Next opens '+next.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</button>`:''}<div id="weekly-assessment" hidden><p>During my Saturday test I…</p><label><input type="checkbox" id="bridge-review"> played the phrase in the assigned key and position</label><label><input type="checkbox" id="bridge-sing"> sang the destination before the change</label><label><input type="checkbox" id="bridge-land"> anticipated it, then landed on beat 1</label><label><input type="checkbox" id="bridge-space"> repeated a motif and left breathing space</label><button class="bak-btn small" id="bridge-claim">Confirm my successful take</button><p id="bridge-result" role="status">Self-assessed skill badge · not a microphone grade.</p></div></details>`;host.append(node);mountWeekPhrase(node,m,start);
+ const road=m.level===2?RoutineModel.build(m.key,m.preset,['arpeggios'],1).chords.map(c=>c.name):m.chords;const cue=m.level===2?'Sing the next third or seventh. Small steps, clear arrivals.':m.cue;const node=document.createElement('section');node.className='weekly-map';node.innerHTML=`<div class="weekly-heading"><div><span class="eyebrow">${start.toLocaleDateString(undefined,{month:'short',day:'numeric'})}–${end.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span></div><span class="xp-medal" aria-label="${xp(rows)} experience points">★ ${xp(rows)} XP</span></div><ol class="week-schedule">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((day,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return `<li class="${dateKey(d)===dateKey(new Date())?'active':''}"><button type="button" data-preview-day="${i}" aria-pressed="false"><strong>${day} ${d.getDate()}</strong><span>${['Learn','Opening','Space','Pickup','Length','Accent','Recall'][i]}</span><small>${i===6?'60 + 60 min':'30 + 30 min'}</small></button></li>`;}).join('')}</ol><details class="weekly-mission"><summary>Week progress</summary><span class="eyebrow">${m.caged} AREA · ${m.tempo} BPM</span><h2>${m.name}</h2><div class="chord-road">${road.map((c,i)=>`<span>${c}</span>${i<road.length-1?'<b aria-hidden="true">→</b>':''}`).join('')}</div><p>${cue}</p><div class="week-progress" aria-label="${e.sessions.length} of 3 sessions completed">${[0,1,2].map(i=>`<span class="${i<e.sessions.length?'earned':''}">${i<e.sessions.length?'✓':'○'}</span>`).join('')}<small>${Math.min(3,e.sessions.length)}/3 sessions · morning + evening</small></div><button class="bak-btn small" id="weekly-check" ${e.ready&&!e.passed?'':'disabled'}>${e.passed?'★ Bridge badge earned':'Review weekly performance'}</button>${e.passed?`<button class="bak-btn small" id="weekly-next" ${canAdvance?'':'disabled'}>${m.index===23?'Path complete':canAdvance?'Start next week →':'Next opens '+next.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</button>`:''}<div id="weekly-assessment" hidden><p>During my Saturday test I…</p><label><input type="checkbox" id="bridge-review"> played the phrase in the assigned key and position</label><label><input type="checkbox" id="bridge-sing"> sang the destination before the change</label><label><input type="checkbox" id="bridge-land"> anticipated it, then landed on beat 1</label><label><input type="checkbox" id="bridge-space"> repeated a motif and left breathing space</label><button class="bak-btn small" id="bridge-claim">Confirm my successful take</button><p id="bridge-result" role="status">Self-assessed skill badge · not a microphone grade.</p></div></details>`;host.append(node);mountWeekPhrase(node,m,start);
  document.getElementById('weekly-check').onclick=()=>document.getElementById('weekly-assessment').hidden=false;
  document.getElementById('bridge-claim').onclick=()=>{if(!['bridge-review','bridge-sing','bridge-land','bridge-space'].every(id=>document.getElementById(id).checked)){document.getElementById('bridge-result').textContent='Complete the test, then check the skills you demonstrated. Repeat this week’s focus if needed; your rewards stay earned.';return;}const fresh=evidence(history(),m.index);if(!fresh.ready||fresh.passed)return;root.PracticeHistory.passBridge(fresh.sessions.at(-1).id);};
  if(document.getElementById('weekly-next'))document.getElementById('weekly-next').onclick=()=>{if(!canAdvance||root.DailyPractice?.active)return;chosen++;const d=new Date();d.setDate(d.getDate()-d.getDay());started=dateKey(d);persist();refresh();};persist();
@@ -224,7 +224,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
    const shape=shapes.includes(value.shape)?value.shape:null;
    const position=shape?(key-({E:4,A:9,D:2}[shape])+12)%12:Math.max(1,Math.min(7,+value.position||4));
    return {key,shape,position,width:[3,4,5].includes(+value.width)?+value.width:5,
-     gesture:value.gesture||0,weeklyKey:value.weeklyKey,mode:value.mode,passing:!!value.passing,trackId:value.trackId,
+     gestureDay:Number.isInteger(value.gestureDay)?value.gestureDay:null,gesture:value.gesture||0,weeklyKey:value.weeklyKey,mode:value.mode,passing:!!value.passing,trackId:value.trackId,
      preset:recipes[value.preset]?value.preset:'minor',octaves:[2,3].includes(+value.octaves)?+value.octaves:1,
      ...(value.phraseId?{phraseId:root.PhraseBank.phraseFor(value.phraseId).id}:{})};
  }
@@ -239,7 +239,8 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
    const native=['minor','andalusian','neoclassical'].includes(c.preset)?'minor':'major';return c.mode&&c.mode!==native?(alternate[c.preset]||recipes[c.preset]):recipes[c.preset];}
  function harmony(value={}){const c=settings(value);return progression(c).map(([offset,quality],i)=>{const pc=(c.key+offset)%12,third=(quality.startsWith('m')&&!quality.startsWith('maj')||quality==='dim')?3:4;let target=pc+(i===0&&c.preset==='minor'?0:third);while(target<55)target+=12;while(target>66)target-=12;return {name:names[pc]+quality,pc,target,voicing:[36+pc,48+(pc+third)%12,48+(pc+(quality.includes('b5')||quality==='dim'?6:7))%12,...(quality.includes('7')?[48+(pc+(quality==='maj7'?11:10))%12]:[])]};});}
  function place(notes,maxStart=19){let best;for(let lo=0;lo<=maxStart;lo++){let previous=null,cost=Math.abs(lo-5)*.5;const mapped=[];for(const n of notes){const candidates=open.map((m,i)=>({string:strings[i],si:i,fret:n.midi-m})).filter(p=>p.fret>=lo&&p.fret<=lo+4&&p.fret<=24);if(!candidates.length){cost=Infinity;break;}candidates.sort((a,b)=>move(a)-move(b));const pos=candidates[0];cost+=move(pos);mapped.push({...n,string:pos.string,fret:pos.fret});previous=pos;function move(p){return previous?Math.abs(p.fret-previous.fret)+Math.abs(p.si-previous.si)*1.5:Math.abs(p.fret-(lo+2))*.2;}}if(!best||cost<best.cost)best={cost,notes:mapped,lo};}if(!Number.isFinite(best?.cost))throw new Error('No compact fingering available');return best;}
- function canStudyGesture(c){return ['minor','blues'].includes(c.preset)&&!root.PhraseBank.phraseFor(c.phraseId).song;}
+ const gestureCues=['Learn the four-note call.','Start on the fifth.','Leave a breath after the first note.','Delay the third note by half a beat.','Hold the third note into the next eighth.','Accent the passing blue note.'];
+ function canStudyGesture(c){return (Number.isInteger(c.gestureDay)||['minor','blues'].includes(c.preset))&&!root.PhraseBank.phraseFor(c.phraseId).song;}
  function melody(rhythm='mixed',variation=0,value={}){const c=settings(value),chords=harmony(c);if(c.phraseId){
    const base=Number.isInteger(c.weeklyKey)?harmony({...c,key:c.weeklyKey}):chords;
    const notes=root.PhraseBank.compose(c,base,rhythm,variation);
@@ -247,14 +248,18 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
    const next=chords.findIndex((ch,i)=>i>0&&ch.name!==chords[i-1].name);
    const boundary=next*8,pc=chords[next-1].pc;
    const target=notes.find(n=>n.step>=boundary).midi;
-   const degrees=c.gesture===1?[5,6,5,7]:[7,6,5,7],steps=[0,3,4,6],lengths=[3,1,2,2];
+   const day=c.gestureDay;
+   const degrees=c.gesture===1&&!(day>=1)?[5,6,5,7]:[7,6,5,7],steps=[0,3,4,6],lengths=[3,1,2,2];
+   if(day>=2)lengths[0]=2;
+   if(day>=3){steps[2]=5;lengths[2]=1;}
+   if(day>=4){steps[3]=7;lengths[2]=2;lengths[3]=1;}
    // Choose one octave for the cell so the blue note stays a half-step neighbor.
    const positions=new Map();
    open.forEach((pitch,i)=>{for(let f=c.position;f<c.position+c.width;f++)positions.set(pitch+f,{string:strings[i],fret:f});});
    const roots=Array.from(positions.keys()).map(m=>m-5).filter(m=>(m-pc)%12===0&&degrees.every(d=>positions.has(m+d)));
    if(!roots.length)return notes;
    const anchor=roots.sort((a,b)=>Math.abs(a+7-target)-Math.abs(b+7-target))[0];
-   const cell=degrees.map((d,i)=>({midi:anchor+d,...positions.get(anchor+d),step:boundary-8+steps[i],length:lengths[i],gesture:true}));
+   const cell=degrees.map((d,i)=>({midi:anchor+d,...positions.get(anchor+d),step:boundary-8+steps[i],length:lengths[i],velocity:day>=5&&i===1?1:undefined,gesture:true}));
    return [...notes.filter(n=>n.step<boundary-8),...cell,...notes.filter(n=>n.step>=boundary)];
  }const raw=chords.flatMap((ch,bar)=>{const target=chords[(bar+1)%chords.length].target;const base=bar<=variation?[ch.target,target+1,target-1]:[ch.target,ch.target+3,target+1];if(rhythm==='call'){const fifth=ch.target+3,answer=bar%2===1;return [{step:bar*8,midi:ch.target,length:answer?4:2},{step:bar*8+(answer?4:2),midi:fifth,length:answer?1:2},{step:bar*8+6,midi:base[1],length:1},{step:bar*8+7,midi:base[2],length:1}];}const pitches=rhythm==='quarter'?[base[0],ch.target+2,base[1],base[2]]:base;const lengths=rhythm==='surround'?[6,1,1]:rhythm==='half'?[4,2,2]:rhythm==='quarter'?[2,2,2,2]:[2,2,4];let offset=0;return pitches.map((midi,i)=>{const n={step:bar*8+offset,midi,length:lengths[i]};offset+=lengths[i];return n;});});return place(raw,c.octaves===2?7:19).notes;}
  const theoryLessons={
@@ -314,7 +319,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
    });
  }
  const phrase=melody(),variationNames=harmony().map((c,i,a)=>c.name+' → '+a[(i+1)%a.length].name+' enclosure');
- root.AmbientLessonModel={phrase,melody,events:lessonEvents,variationNames,harmony,settings,theoryCue,changeLoop};
+ root.AmbientLessonModel={phrase,melody,events:lessonEvents,variationNames,harmony,settings,theoryCue,changeLoop,gestureCues};
  if(typeof document==='undefined')return;
  let cleanup=()=>{};
  const bank=root.PhraseBank;
@@ -357,7 +362,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
  toggle.textContent=looping?'Full phrase':'Loop change';toggle.setAttribute('aria-pressed',String(looping));
  const lesson=lessonForChange(config),link=$('[data-theory-lesson]');
  const gesture=$('[data-gesture]');
- gesture.hidden=checking||!canStudyGesture(config);
+ gesture.hidden=checking||Number.isInteger(config.gestureDay)||!canStudyGesture(config);
  gesture.textContent=['Try blues gesture','Vary the opening','Restore phrase'][config.gesture];
  if(config.gesture&&ns.some(n=>n.gesture)){
    const cell=ns.filter(n=>n.gesture);
@@ -372,18 +377,18 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
  const active=family[(family.indexOf(selected)+variation)%family.length];
  $('[data-variation]').textContent=active.name+(mode?' · '+round+'/'+repeats:'');
  $('[data-reps]').textContent=repeats+(repeats===1?' rep':' reps');
- $('[data-style]').value=selected.style;rhythm.disabled=!!selected.song;if(selected.song&&!mode)$('[data-phrase-turn]').textContent=selected.name;
+ $('[data-style]').value=selected.style;rhythm.disabled=!!selected.song;if(!mode)$('[data-phrase-turn]').textContent=gestureCues[config.gestureDay]||selected.song?.name||'';
  $('[data-position]').value=config.shape;
  $('[data-registers]').value=config.octaves;
  $('[data-width]').value=config.width;
  $('[data-pause]').textContent=paused?'▶':'Ⅱ';$('[data-pause]').setAttribute('aria-label',paused?'Resume playback':'Pause playback');}
- function stop(){panel.classList.remove('recalling');token++;listener.stop();runner.stop();voice?.dispose();bass?.dispose();click?.dispose();voice=bass=click=null;mode=null;paused=false;$('[data-landing-hit]').setAttribute('visibility','hidden');paint();cue.textContent='';$('[data-phrase-turn]').textContent='';}
+ function stop(){panel.classList.remove('recalling');token++;listener.stop();runner.stop();voice?.dispose();bass?.dispose();click?.dispose();voice=bass=click=null;mode=null;paused=false;$('[data-landing-hit]').setAttribute('visibility','hidden');paint();cue.textContent='';}
  function visual(e){panel.classList.toggle('recalling',e.turn==='Answer');$('[data-phrase-turn]').textContent=e.countIn?'Count in':e.turn|| (mode==='play'?'Play from memory':mode==='listen'?'Listen':'Sing from memory');panel.querySelectorAll('[data-ambient-beat]').forEach(n=>n.classList.toggle('active',+n.dataset.ambientBeat===Math.floor(e.step%8/2)+1));if(e.countIn){cue.textContent=String(Math.floor(e.step/2)+1);return;}if(mode!=='play')cue.textContent='';panel.querySelectorAll('[data-chord]').forEach(n=>{n.classList.toggle('active',+n.dataset.chord===e.bar);n.setAttribute('aria-current',+n.dataset.chord===e.bar?'true':'false');});
  const target=$('[data-ambient-target]');target.setAttribute('cx',x(e.target.fret));target.setAttribute('cy',y(e.target.string));const dot=$('[data-ambient-dot]');dot.setAttribute('visibility',e.held?'visible':'hidden');if(e.held){const hit=$('[data-landing-hit]');dot.querySelector('circle').setAttribute('fill',hit.getAttribute('visibility')==='visible'&&+hit.getAttribute('cx')===x(e.held.fret)&&+hit.getAttribute('cy')===y(e.held.string)?'#368c4d':'#13121b');dot.setAttribute('transform',`translate(${x(e.held.fret)},${y(e.held.string)})`);$('[data-ambient-interval]').textContent=PracticePatterns.INTERVALS[(e.held.midi-e.pc+12)%12];}panel.querySelectorAll('[data-ambient-tab]').forEach(n=>n.classList.toggle('active',e.held?.step===+n.dataset.ambientTab));$('.ambient-scroll').scrollLeft=Math.max(0,e.step*50-100);}
- const runner=new PracticePatterns.Runner({play(e,d){if(!panel.isConnected){stop();return;}if(!e.countIn&&e.step%8===0)$('[data-landing-hit]').setAttribute('visibility','hidden');visual(e);if(e.step%2===0)click.triggerAttackRelease('C5',.025,Tone.now(),e.countIn?.3:.06);if(e.countIn)return;const scored=looping?(e.loopLanding&&e.landingNote):(e.step%8===0&&e.note);if(mode==='play'&&e.turn!=='Listen'&&scored)listener.expect(scored.midi,e.chord+' → '+PracticePatterns.noteName(scored.midi),d*Math.min(scored.length,8-e.step%8),{bar:e.bar,fret:scored.fret,string:scored.string});const track=bank.tracks[config.trackId]||bank.tracks[bank.recommended(config)];
+ const runner=new PracticePatterns.Runner({play(e,d){if(!panel.isConnected){stop();return;}if(!e.countIn&&e.step%8===0)$('[data-landing-hit]').setAttribute('visibility','hidden');visual(e);if(e.step%2===0)click.triggerAttackRelease('C5',.025,Tone.now(),e.countIn?.3:.06);if(e.countIn)return;const scored=(looping||checking&&Number.isInteger(config.gestureDay))?(e.loopLanding&&e.landingNote):(e.step%8===0&&e.note);if(mode==='play'&&e.turn!=='Listen'&&scored)listener.expect(scored.midi,e.chord+' → '+PracticePatterns.noteName(scored.midi),d*Math.min(scored.length,8-e.step%8),{bar:e.bar,fret:scored.fret,string:scored.string});const track=bank.tracks[config.trackId]||bank.tracks[bank.recommended(config)];
  bank.accompany(track,e,d,voice,bass);
- if(e.note&&(mode==='listen'||e.turn==='Listen'||mode==='play'&&!checking&&!looping&&$('[data-turn]').value==='with'))voice.triggerAttackRelease(Tone.Frequency(e.note.midi,'midi').toNote(),d*e.note.length*.95,Tone.now()+.03,.85);},onFinish(){if(mode==='play'&&$('[data-mic]').checked){const summary=$('[data-landing-summary]');summary.hidden=false;
- const target=sessionEvents(false).find(e=>looping?e.loopLanding:e.bar===1&&e.note&&e.step%8===0);
+ if(e.note&&(mode==='listen'||e.turn==='Listen'||mode==='play'&&!checking&&!looping&&$('[data-turn]').value==='with'))voice.triggerAttackRelease(Tone.Frequency(e.note.midi,'midi').toNote(),d*e.note.length*.95,Tone.now()+.03,e.note.velocity??.85);},onFinish(){if(mode==='play'&&$('[data-mic]').checked){const summary=$('[data-landing-summary]');summary.hidden=false;
+ const target=sessionEvents(false).find(e=>(looping||checking&&Number.isInteger(config.gestureDay))?e.loopLanding:e.bar===1&&e.note&&e.step%8===0);
  if(target){const result=results[target.bar];if(result==='hit'||result==='adjust'){attempts++;if(result==='hit')hits++;}
  summary.textContent=attempts?PracticePatterns.noteName((target.landingNote||target.note).midi)+' into '+target.chord+' · '+hits+' of '+attempts+' clear tries':'No clear target heard yet';}
  else summary.textContent='No downbeat target in this change.';
@@ -392,6 +397,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
  function sessionEvents(countIn){
    const events=lessonEvents(rhythm.value,variation,countIn,config,octave);
    if(looping)return changeLoop(events);
+   if(checking&&Number.isInteger(config.gestureDay))return changeLoop(events);
    if(checking)return events.filter(e=>e.countIn||e.bar<2);
    return bank.turns(events,mode==='play'&&$('[data-turn]').value==='respond');
  }
@@ -422,7 +428,7 @@ root.WeeklyPractice={current,get start(){current();return started;},mount(host){
  $('[data-less]').onclick=()=>{repeats=Math.max(1,repeats-1);paint();};
  $('[data-more]').onclick=()=>{repeats=Math.min(32,repeats+1);paint();};
  root.AmbientLesson.configure=value=>{
-   stop();looping=false;checking=false;recallBox.hidden=true;lastTurn='listen';config=settings({...value,shape:value.shape||'E',phraseId:value.phraseId||(value.preset==='blues'?'blues-1':'triads-1')});
+   stop();looping=Number.isInteger(value.gestureDay);checking=false;recallBox.hidden=true;lastTurn='listen';config=settings({...value,shape:value.shape||'E',phraseId:value.phraseId||(value.preset==='blues'?'blues-1':'triads-1')});
    octave=0;variation=0;rhythm.value=value.rhythm in bank.rhythms?value.rhythm:'lyrical';
    speed.value=Math.max(30,Math.min(120,+value.tempo||45));tempo(0);redraw();
  };redraw();paint();cleanup=stop;root.AmbientLesson.stop=stop;
