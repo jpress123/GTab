@@ -2,7 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 import argparse
 import importlib.util
 import json
@@ -195,10 +195,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(409, {'error': 'Stems are not ready.'})
             file = self.server.jobs.root / jid / ('stems.zip' if asset == 'download' else f'stems/{stem}.wav')
             return self.send_file(file, download=asset == 'download')
+        if path == '/api/soloing-books':
+            books = []
+            for number in (1, 2):
+                folder = ROOT / 'Library' / 'Guitar Soloing Pro' / f'Book {number}'
+                names = sorted(f.name for f in folder.glob('*.mp3') if re.fullmatch(r'(Exercise-|jam-track-|Example |Jam Track )[0-9]{2}\.mp3', f.name))
+                if names:
+                    books.append({'number': number, 'tracks': names})
+            return self.reply(200, books)
+        track = re.fullmatch(r'/api/soloing-books/([12])/((?:Exercise-|jam-track-|Example |Jam Track )[0-9]{2}\.mp3)', unquote(path))
+        if track:
+            return self.send_file(ROOT / 'Library' / 'Guitar Soloing Pro' / ('Book ' + track[1]) / track[2])
         # Explicit public allowlist: never expose uploads, model cache, source, or .git.
         if path == '/':
             path = '/index.html'
-        if path in ('/index.html', '/studio.css', '/audio-engine.js', '/stem-client.js', '/guitar-notation.js', '/practice-patterns.js', '/practice-ui.js', '/routine.js', '/performance.js', '/dashboard.js', '/levels.js', '/session-data.js', '/practice-focus.js', '/daily-practice.js', '/weekly-path.js') or re.fullmatch(r'/assets/samples/(?:guitar-acoustic|bass-electric)/[A-G][s]?[1-5]\.mp3', path) or path in ('/assets/samples/LICENSE.md','/assets/samples/ATTRIBUTION.md'):
+        if path in ('/index.html', '/studio.css', '/audio-engine.js', '/stem-client.js', '/guitar-notation.js', '/practice-patterns.js', '/practice-ui.js', '/routine.js', '/performance.js', '/dashboard.js', '/levels.js', '/session-data.js', '/practice-focus.js', '/daily-practice.js', '/weekly-path.js', '/jazz-standards.js', '/phrase-bank.js', '/bank-library.js', '/book-library.js') or re.fullmatch(r'/assets/samples/(?:guitar-acoustic|bass-electric)/[A-G][s]?[1-5]\.mp3', path) or path in ('/assets/samples/LICENSE.md','/assets/samples/ATTRIBUTION.md'):
             return self.send_file(ROOT / path.lstrip('/'))
         self.reply(404, {'error': 'Not found.'})
 

@@ -52,6 +52,24 @@ document.addEventListener('DOMContentLoaded',()=>{
  // Explicitly open the advanced timed session in Practice instead of hiding it in the console.
  root.PracticeWorkspace={showTimed(){root.AmbientLesson.stop?.();$('lesson-home').hidden=true;$('custom-lesson').hidden=false;$('return-guided').hidden=false;$('nav-practice').click();}};
  const shelf=document.createElement('section');shelf.className='library-shelf';shelf.innerHTML='<div class="workspace-title"><span class="eyebrow">SOURCES & INSPIRATION</span><h1>Library</h1><p>Keep backing tracks and audio licks here. Choose a source for the Mixing Board.</p></div><div class="library-import"><button class="bak-btn" id="library-backing">Import backing track</button><button class="bak-btn" id="library-lick">Import audio lick</button><input id="library-file" type="file" accept=".mp3,.wav,.m4a,.flac,.ogg" hidden></div><p id="library-status" role="status">Saved on this device. Keep your originals; history backups do not include audio.</p><div id="library-items"></div>';library.prepend(shelf);
+ if(['localhost','127.0.0.1'].includes(location.hostname)){
+   fetch('/api/soloing-books').then(response=>response.json()).then(books=>{
+     if(!books.length)return;
+     const panel=document.createElement('details');
+     panel.className='workspace-details';
+     panel.innerHTML='<summary>Guitar Soloing Pro</summary><label>Book <select data-book></select></label> <label>Track <select data-track></select></label><audio controls preload="none"></audio>';
+     const book=panel.querySelector('[data-book]'), track=panel.querySelector('[data-track]'), player=panel.querySelector('audio');
+     books.forEach(b=>book.add(new Option('Book '+b.number,b.number)));
+     function load(){player.src='/api/soloing-books/'+book.value+'/'+encodeURIComponent(track.value);}
+     function selectBook(){const current=books.find(b=>String(b.number)===book.value);
+       track.replaceChildren(...current.tracks.map(name=>new Option(name.replace(/\.mp3$/i,'').replaceAll('-',' '),name)));load();}
+     book.onchange=selectBook;track.onchange=load;selectBook();
+     document.querySelector('#nav-export').parentElement.addEventListener('click',e=>{if(e.target.closest('[data-screen]')?.id!=='nav-export')player.pause();});
+     panel.ontoggle=()=>{if(!panel.open)player.pause();};
+     shelf.querySelector('.library-import').before(panel);
+   }).catch(()=>{});
+ }
+ if(!['localhost','127.0.0.1'].includes(location.hostname))root.mountPrivateBooks(shelf);
  root.mountPhraseLibrary({shelf,board,draft,send:()=>$('draft-practice').click(),goMix:()=>$('nav-prog').click()});
  let pendingKind='backing',sourceURL=null;const db=new Promise((resolve,reject)=>{const r=indexedDB.open('gtab-audio-library',1);r.onupgradeneeded=()=>r.result.createObjectStore('audio',{keyPath:'id'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
  async function all(){const d=await db;return new Promise((resolve,reject)=>{const r=d.transaction('audio').objectStore('audio').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
